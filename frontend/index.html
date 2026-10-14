@@ -129,6 +129,7 @@
     <select id="refSel" class="refsel">
       <option value="djokovic">喬科維奇・正拍</option>
       <option value="federer">費德勒・正拍</option>
+      <option value="federer_backhand_normal">費德勒・單手反拍</option>
     </select>
     <div id="fedWrap" style="display:none">
       <div class="handlabel">球種</div>
@@ -471,7 +472,9 @@ function paint(d){
   else $("#seqWarn").style.display="none";
   $("#contactSub").textContent="你與"+refName+"的擊球定格畫面，黃色線條為系統辨識出的骨架。";
   $("#contactCap").textContent=refName;
-  $("#bandSub").textContent="綠色區帶＝ "+refName+"正拍的常見範圍"+(d.ref_key&&d.ref_key!=="federer_normal"&&d.ref_key!=="djokovic"?"（特殊球種仍以一般正拍作為評分基準）":"");
+  const isFhVariant = d.ref_key && d.ref_key.startsWith("federer_") && d.ref_key!=="federer_normal" && !String(d.ref_key).includes("backhand");
+  const stroke = String(d.ref_key||"").includes("backhand") ? "單手反拍" : "正拍";
+  $("#bandSub").textContent="綠色區帶＝ "+refName+stroke+"的常見範圍"+(isFhVariant?"（特殊球種仍以一般正拍作為評分基準）":"");
   $("#overlaySub").textContent="藍色＝你，橘色＝"+refName+"。已先以 3D 還原成相同側視角，再依身材比例調整後疊合。";
   if(d.user_contact){$("#userContactImg").src=d.user_contact;
     if(d.djokovic_contact){$("#djokoContactImg").src=d.djokovic_contact; $("#refFigure").style.display="";}
@@ -585,7 +588,7 @@ async function persistCurrent(){
   if(!lastResult || !lastResult.token) return;
   const d=lastResult;
   const entry={ id:d.token, savedAt:Date.now(),
-    score:(d.report&&d.report.score!=null)?d.report.score:null, contact:d.contact, label:"正拍",
+    score:(d.report&&d.report.score!=null)?d.report.score:null, contact:d.contact, label:String(d.ref_key||"").includes("backhand")?"單手反拍":"正拍",
     thumb:d.user_contact||d.djokovic_contact||null, d:_slim(d),
     djoko_b64:_djokoB64||null, djoko_contact_b64:_djokoContactB64||null };
   try{                                               // 关键: 立刻写库, 不等喬科維奇图抓取(手机抓图慢/被挡也不丢历史)

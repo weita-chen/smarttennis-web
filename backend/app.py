@@ -98,6 +98,16 @@ def _load_catalog() -> dict:
             "note": note,
             "facing": _facing_of(doc),
         }
+    bh_path = os.path.join(REF_DIR, "federer_backhand_normal.json")
+    if os.path.isfile(bh_path):
+        with open(bh_path, encoding="utf-8") as fh:
+            bh = json.load(fh)
+        catalog["federer_backhand_normal"] = {
+            "doc": bh, "label": "費德勒", "scrub": False,
+            "scrub_dir": "", "contact_asset": "",
+            "note": "目前單手反拍只評非持拍手肘的垂直高度，其他項目還不能當尺子。",
+            "facing": _facing_of(bh),
+        }
     return catalog
 
 
@@ -410,8 +420,9 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto"),
             except Exception:                        # noqa: BLE001
                 continue
         if len(per) >= 2:
-            agg_m = {k: float(statistics.median([m[k] for m, _ in per]))
-                     for k in diagnose.ORDER}
+            score_keys = refdoc.get("score_keys") or diagnose.ORDER
+            agg_m = {k: float(statistics.median([m[k] for m, _ in per if m.get(k) is not None]))
+                     for k in score_keys}
             agg_report = diagnose.diagnose(
                 agg_m, refdoc,
                 loading_frames=int(statistics.median([lf for _, lf in per])),

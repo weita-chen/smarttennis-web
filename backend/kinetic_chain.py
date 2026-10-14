@@ -323,6 +323,36 @@ def contact_point(world_contact, hand: str = "R") -> tuple:
     return round(abs(float(wr @ fwd)) / scale, 3), round(float(wr @ up) / scale, 3)
 
 
+def off_elbow_heights(world: np.ndarray, hand: str, contact: int, fps: float,
+                      lo_limit: int = 0) -> tuple:
+    """非持拍手肘的垂直高度，以軀幹長為單位（髖＝0，肩膀≈1）。
+
+    回傳 (引拍最高點, 最高點之後到擊球的最低點)。
+    往回看 4 秒，用來對上「先抬到肩膀附近，再回到腰側」。
+    """
+    el = L_EL if hand != "L" else R_EL
+    n = int(world.shape[0])
+    contact = int(np.clip(contact, 0, n - 1))
+    lo = max(int(lo_limit), contact - max(int(round(4.0 * fps)), 90))
+    heights = np.empty(contact - lo + 1, dtype=float)
+    for k, i in enumerate(range(lo, contact + 1)):
+        p = np.asarray(world[i], dtype=float)[:, :3]
+        hip = (p[L_HIP] + p[R_HIP]) / 2.0
+        sh = (p[L_SH] + p[R_SH]) / 2.0
+        q = p - hip
+        right = q[R_HIP] - q[L_HIP]
+        right = right / (np.linalg.norm(right) + 1e-9)
+        up = sh - hip
+        up = up - np.dot(up, right) * right
+        up = up / (np.linalg.norm(up) + 1e-9)
+        scale = float(np.linalg.norm(sh - hip) or 1.0)
+        heights[k] = float(q[el] @ up) / scale
+    heights = _smooth(heights, 5)
+    pre_end = max(1, len(heights) - 3)
+    peak_i = int(np.argmax(heights[:pre_end]))
+    return round(float(heights[peak_i]), 3), round(float(heights[peak_i:].min()), 3)
+
+
 def _peak_centroids(signals: dict, contact: int, pre_s: float, post_s: float) -> dict:
     """五环节各自的"发力时刻"(相对击球, 秒): 窗口 [contact-pre_s, contact+post_s] 内
     强度加权质心而非 argmax —— 低帧率+姿态抖动下远比单帧峰值稳定。"""
@@ -447,6 +477,10 @@ def analyze(data: dict, hand: str = "auto", contact_override: int = None,
     cpts = [contact_point(world[i], full["hand"]) for i in cwin]
     metrics["contact_forward"] = round(float(np.median([q[0] for q in cpts])), 3)
     metrics["contact_height"] = round(float(np.median([q[1] for q in cpts])), 3)
+    off_peak, off_drop = off_elbow_heights(
+        world, full["hand"], contact, fps, lo_limit=bound_lo)
+    metrics["off_elbow_peak"] = off_peak
+    metrics["off_elbow_drop"] = off_drop
     # 击球前旋转完成度: 髋+肩角速度在[起点→击球]的积分占整个挥拍的比例。
     # 抗噪——用积分(不取峰值帧)、不依赖精确击球帧; 高=击球前已转到位(德约式≈0.72),
     # 低=身体旋转偏晚/转过击球点。比"5个速度峰散点"在低帧率/斜机位下稳得多。

@@ -39,6 +39,18 @@ METRIC_META = {
                  "練習建議：引拍後先轉髖再轉肩、並在觸球前完成轉體；觸球時身體已朝向來球方向，接著將力量傳給手臂揮出。",
         "above": "",
     },
+    "off_elbow_peak": {
+        "label": "非持拍手肘最高點", "unit": "", "direction": "band",
+        "good": "引拍時非持拍手的手肘抬到接近肩膀。1 大約是肩膀高度，0 是髖部。",
+        "below": "非持拍手肘抬得不夠高。引拍時可以讓這只手肘靠近肩膀，不要一直垂在身側。",
+        "above": "手肘抬得比這批基準更高。這批已經到肩膀附近，不必再刻意抬高。",
+    },
+    "off_elbow_drop": {
+        "label": "非持拍手肘回落高度", "unit": "", "direction": "band",
+        "good": "手肘在擊球前回到腰側附近。1 大約是肩膀高度，0.5 大約在腰。",
+        "below": "手肘掉得比這批基準更低，幾乎貼到髖部。",
+        "above": "擊球前手肘還停得比較高，沒有回到腰側。",
+    },
 }
 ORDER = ["seq_lead", "xfactor_magnitude", "contact_forward", "contact_height", "rot_pre_frac"]
 SEQ_LABELS = {"hip": "髖部", "shoulder": "肩膀", "upper_arm": "上臂",
@@ -99,10 +111,12 @@ def diagnose(user_metrics: dict, reference: dict,
     """loading_frames: 装载帧数(时序指标置信门, None=不启用锁);
     n_swings: 聚合的挥拍数(>=2 时说明评分基于多挥拍中位数)。"""
     band_all = reference["metrics_band"]
+    keys = reference.get("score_keys") or ORDER
     timing_locked = loading_frames is not None and loading_frames < TIMING_MIN_LOADING
     items, subs, weights = [], [], []
     locked_keys = []
-    for key in ORDER:
+    elbow_only = bool(keys) and set(keys) <= {"off_elbow_peak", "off_elbow_drop"}
+    for key in keys:
         meta = METRIC_META[key]
         band = band_all[key]
         val = float(user_metrics[key])
@@ -143,14 +157,21 @@ def diagnose(user_metrics: dict, reference: dict,
         })
 
     score = round(sum(subs) / max(sum(weights), 1e-6))
-    if score >= 80:
+    if elbow_only:
+        if score >= 80:
+            summary = "非持拍手肘的抬高和回落都接近這批基準。"
+        elif score >= 60:
+            summary = "非持拍手肘的高度有一項偏離這批基準。"
+        else:
+            summary = "非持拍手肘的高度和這批基準差比較多。"
+    elif score >= 80:
         summary = "整體動力鏈接近職業水準，請繼續保持。"
     elif score >= 60:
         summary = "動力鏈基礎不錯，有 1～2 個環節可以優先加強。"
     else:
         summary = "動力結構還有明顯的改善空間，建議先從下半身帶動的練習開始。"
     prefix = f"基於 {n_swings} 次揮拍的綜合評估。" if n_swings >= 2 else ""
-    suffix = (f"（這次可評 {len(subs)}/{len(ORDER)} 項，時序類需慢動作影片才能解鎖）"
+    suffix = (f"（這次可評 {len(subs)}/{len(keys)} 項，時序類需慢動作影片才能解鎖）"
               if locked_keys else "")
     summary = prefix + summary + suffix
 

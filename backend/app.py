@@ -83,7 +83,7 @@ def _load_catalog() -> dict:
             doc["metrics_band"] = normal_band
         label = "费德勒" if variant == "normal" else "费德勒·" + VARIANT_ZH.get(variant, variant)
         if variant == "normal":
-            note = "费德勒正手基准来自 7 支侧面挥拍，样本仍少，绿带是暂用的。"
+            note = "费德勒正手绿带是这 7 支的实际最小到最大，不是中间一半。样本少，这 7 支的高度和前伸都算合理。"
         elif borrowed:
             note = f"影子和动力链曲线用{label}。评分仍对照费德勒一般正手（这支特殊球只有 1 条，不能单独当尺子）。"
         else:

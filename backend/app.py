@@ -82,6 +82,17 @@ def _load_catalog() -> dict:
                 continue
             doc = dict(doc)
             doc["metrics_band"] = normal_band
+        scrub_dir = {
+            "normal": "federer_scrub",
+            "highball": "federer_highball_scrub",
+            "lowball": "federer_lowball_scrub",
+            "approach_normal": "federer_approach_normal_scrub",
+            "approach_high": "federer_approach_high_scrub",
+            "running": "federer_running_scrub",
+            "topspin": "federer_topspin_scrub",
+        }.get(variant, "")
+        scrub_ok = bool(scrub_dir) and os.path.isdir(
+            os.path.join(FRONTEND, "assets", scrub_dir))
         label = "費德勒" if variant == "normal" else "費德勒・" + VARIANT_ZH.get(variant, variant)
         if variant == "normal":
             note = "費德勒的正拍綠色區帶。"
@@ -92,8 +103,9 @@ def _load_catalog() -> dict:
         if variant == "running":
             note += "動作影子僅供參考。"
         catalog[key] = {
-            "doc": doc, "label": label, "scrub": variant == "normal",
-            "scrub_dir": "federer_scrub" if variant == "normal" else "",
+            "doc": doc, "label": label, "scrub": scrub_ok,
+            "scrub_dir": scrub_dir if scrub_ok else "",
+            "scrub_frame": (doc.get("reference") or {}).get("contact_frame"),
             "contact_asset": "federer_contact.jpg" if variant == "normal" else "",
             "note": note,
             "facing": _facing_of(doc),
@@ -103,9 +115,11 @@ def _load_catalog() -> dict:
         with open(bh_path, encoding="utf-8") as fh:
             bh = json.load(fh)
         catalog["federer_backhand_normal"] = {
-            "doc": bh, "label": "費德勒", "scrub": False,
-            "scrub_dir": "", "contact_asset": "",
-            "note": "目前單手反拍只評非持拍手肘的垂直高度，其他項目還不能當尺子。",
+            "doc": bh, "label": "費德勒", "scrub": os.path.isdir(
+                os.path.join(FRONTEND, "assets", "federer_backhand_scrub")),
+            "scrub_dir": "federer_backhand_scrub", "scrub_frame": 165,
+            "contact_asset": "",
+            "note": "單手反拍目前評非持拍手肘的高度，以及隨揮時手腕離身體的最遠距離。",
             "facing": _facing_of(bh),
         }
     return catalog
@@ -277,6 +291,7 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
                          for i in range(len(shadow.SCRUB_PHASES))]
                         if meta.get("scrub") and meta.get("scrub_dir") else []),
         "scrub_phases": shadow.SCRUB_PHASES,
+        "scrub_ref_frame": meta.get("scrub_frame"),
         "ref_key": ref_key if ref_key in CATALOG else "djokovic",
         "ref_label": meta["label"],
         "ref_note": meta["note"],
@@ -421,8 +436,10 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto"),
                 continue
         if len(per) >= 2:
             score_keys = refdoc.get("score_keys") or diagnose.ORDER
-            agg_m = {k: float(statistics.median([m[k] for m, _ in per if m.get(k) is not None]))
-                     for k in score_keys}
+            agg_m = {}
+            for k in score_keys:
+                vals = [m[k] for m, _ in per if m.get(k) is not None]
+                agg_m[k] = float(statistics.median(vals)) if vals else None
             agg_report = diagnose.diagnose(
                 agg_m, refdoc,
                 loading_frames=int(statistics.median([lf for _, lf in per])),

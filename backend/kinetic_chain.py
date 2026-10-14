@@ -353,6 +353,40 @@ def off_elbow_heights(world: np.ndarray, hand: str, contact: int, fps: float,
     return round(float(heights[peak_i]), 3), round(float(heights[peak_i:].min()), 3)
 
 
+def off_wrist_reach(world: np.ndarray, hand: str, contact: int, fps: float,
+                    lo_limit: int = 0) -> tuple:
+    """非持拍手腕離髖部的最遠距離（軀幹長）。
+
+    先找抬高之後、擊球前的最低點，再從那一格看到擊球後 2 秒，取最大距離，不做平均。
+    回傳 (最遠距離, 影片在擊球後是否還夠長)。太短就不要拿來評分。
+    """
+    wr_i = L_WR if hand != "L" else R_WR
+    n = int(world.shape[0])
+    contact = int(np.clip(contact, 0, n - 1))
+    lo = max(int(lo_limit), contact - max(int(round(4.0 * fps)), 90))
+    end = min(n - 1, contact + int(round(2.0 * fps)))
+    complete = (n - 1 - contact) >= int(round(0.8 * fps))
+    heights = np.empty(end - lo + 1, dtype=float)
+    dists = np.empty(end - lo + 1, dtype=float)
+    for k, i in enumerate(range(lo, end + 1)):
+        p = np.asarray(world[i], dtype=float)[:, :3]
+        hip = (p[L_HIP] + p[R_HIP]) / 2.0
+        sh = (p[L_SH] + p[R_SH]) / 2.0
+        torso = float(np.linalg.norm(sh - hip) or 1.0)
+        up = (sh - hip) / torso
+        wr = p[wr_i] - hip
+        heights[k] = float(wr @ up) / torso
+        dists[k] = float(np.linalg.norm(wr)) / torso
+    heights = _smooth(heights, 3)
+    dists = _smooth(dists, 3)
+    contact_k = contact - lo
+    pre_end = max(1, contact_k - 2)
+    peak_k = int(np.argmax(heights[:pre_end]))
+    low_k = peak_k + int(np.argmin(heights[peak_k:contact_k + 1]))
+    far = float(dists[low_k:].max())
+    return round(far, 3), bool(complete)
+
+
 def _peak_centroids(signals: dict, contact: int, pre_s: float, post_s: float) -> dict:
     """五环节各自的"发力时刻"(相对击球, 秒): 窗口 [contact-pre_s, contact+post_s] 内
     强度加权质心而非 argmax —— 低帧率+姿态抖动下远比单帧峰值稳定。"""
@@ -481,6 +515,9 @@ def analyze(data: dict, hand: str = "auto", contact_override: int = None,
         world, full["hand"], contact, fps, lo_limit=bound_lo)
     metrics["off_elbow_peak"] = off_peak
     metrics["off_elbow_drop"] = off_drop
+    reach, reach_ok = off_wrist_reach(
+        world, full["hand"], contact, fps, lo_limit=bound_lo)
+    metrics["off_wrist_reach"] = reach if reach_ok else None
     # 击球前旋转完成度: 髋+肩角速度在[起点→击球]的积分占整个挥拍的比例。
     # 抗噪——用积分(不取峰值帧)、不依赖精确击球帧; 高=击球前已转到位(德约式≈0.72),
     # 低=身体旋转偏晚/转过击球点。比"5个速度峰散点"在低帧率/斜机位下稳得多。

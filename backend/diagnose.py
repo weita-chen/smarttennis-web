@@ -51,6 +51,12 @@ METRIC_META = {
         "below": "手肘掉得比這批基準更低，幾乎貼到髖部。",
         "above": "擊球前手肘還停得比較高，沒有回到腰側。",
     },
+    "off_wrist_reach": {
+        "label": "非持拍手隨揮打開", "unit": "", "direction": "band",
+        "good": "隨揮時非持拍手離開身體，大約一個軀幹長。1 是髖到肩膀的長度。",
+        "below": "隨揮時非持拍手留在身體旁邊，沒有甩開。",
+        "above": "手甩得比這批基準更遠。",
+    },
 }
 ORDER = ["seq_lead", "xfactor_magnitude", "contact_forward", "contact_height", "rot_pre_frac"]
 SEQ_LABELS = {"hip": "髖部", "shoulder": "肩膀", "upper_arm": "上臂",
@@ -115,11 +121,24 @@ def diagnose(user_metrics: dict, reference: dict,
     timing_locked = loading_frames is not None and loading_frames < TIMING_MIN_LOADING
     items, subs, weights = [], [], []
     locked_keys = []
-    elbow_only = bool(keys) and set(keys) <= {"off_elbow_peak", "off_elbow_drop"}
+    elbow_only = bool(keys) and set(keys) <= {"off_elbow_peak", "off_elbow_drop", "off_wrist_reach"}
     for key in keys:
         meta = METRIC_META[key]
         band = band_all[key]
-        val = float(user_metrics[key])
+        val_raw = user_metrics.get(key)
+        if val_raw is None:
+            locked_keys.append(key)
+            items.append({
+                "key": key, "label": meta["label"], "unit": meta["unit"],
+                "value": None, "band_lo": round(band["lo"], 2),
+                "band_hi": round(band["hi"], 2), "median": round(band["median"], 2),
+                "p10": None, "p90": None,
+                "score": None, "status": "low_confidence", "ok": None,
+                "locked": True,
+                "tip": "擊球後的隨揮沒有拍完整，這項先不評。請把揮拍結束也拍進去。",
+            })
+            continue
+        val = float(val_raw)
         locked = timing_locked and key in TIMING_LOCKED
         p10, p90 = _acceptable(band)
         if locked:
@@ -159,11 +178,11 @@ def diagnose(user_metrics: dict, reference: dict,
     score = round(sum(subs) / max(sum(weights), 1e-6))
     if elbow_only:
         if score >= 80:
-            summary = "非持拍手肘的抬高和回落都接近這批基準。"
+            summary = "非持拍手的高度和隨揮打開都接近這批基準。"
         elif score >= 60:
-            summary = "非持拍手肘的高度有一項偏離這批基準。"
+            summary = "非持拍手有一項偏離這批基準。"
         else:
-            summary = "非持拍手肘的高度和這批基準差比較多。"
+            summary = "非持拍手的高度或隨揮打開，和這批基準差比較多。"
     elif score >= 80:
         summary = "整體動力鏈接近職業水準，請繼續保持。"
     elif score >= 60:

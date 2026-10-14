@@ -225,14 +225,7 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
     if frame is not None and contact_pose:
         user_contact = shadow.draw_skeleton_on_frame(frame, contact_pose)
 
-    mirror_user = res.get("facing", 1.0) != meta["facing"]
-    # 3D 视角归一化: 取用户/喬科維奇 contact 帧的 world 坐标, 还原同一侧视
-    uw = res["world"][contact_idx].tolist() if 0 <= contact_idx < len(res["world"]) else None
     overlay = None
-    if contact_pose and ref.get("contact_pose_img"):
-        overlay = shadow.render_shadow_overlay(
-            contact_pose, ref["contact_pose_img"], mirror_user=mirror_user,
-            user_world=uw, ref_world=ref.get("contact_pose_world"))
 
     # 同步逐帧 scrubber: 线性相位映射(每相位点=各自 contact + τ·loading)。
     # 注: 曾试 DTW 非线性对应, 但它会按信号相似度 warp 掉用户的击球帧, 致逐帧不同步,

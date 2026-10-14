@@ -224,7 +224,7 @@
       <div class="seqwrap"><img id="scrubMini" alt="發力時間軸"><div class="seqline" id="seqLine2"></div></div>
       <div class="sub" style="margin-top:8px">綠線＝身體（髖部＋肩膀），紅線＝手臂（手腕）；實線＝你，虛線＝職業球員。理想的發力傳遞是：綠線峰值在擊球線之前出現並回落（身體先完成轉動），接著紅線峰值出現並朝擊球點加速（再由手臂帶出力量）。如果綠線峰值貼近或越過擊球線，可能表示轉體偏晚、變成「邊打邊轉」。可以拖移圓鈕觀察垂直線掃過曲線時，上方畫面中的動作變化。</div>
     </div>
-    <div class="card imgcard" id="overlayCard">
+    <div class="card imgcard" id="overlayCard" style="display:none">
       <h3>動作影子比較（擊球瞬間）</h3>
       <div class="sub" id="overlaySub">藍色＝你，橘色＝比較基準。已先以 3D 還原成相同側視角，再依身材比例調整後疊合。</div>
       <img id="overlayImg" alt="影子骨架疊加">
@@ -465,8 +465,7 @@ function paint(d){
   else $("#contactCard").style.display="none";
   cstatus.textContent="目前擊球影格：第 "+d.contact+" 格";
   $("#chartImg").src=d.kinetic_chart;
-  if(d.shadow_overlay){$("#overlayImg").src=d.shadow_overlay;$("#overlayCard").style.display="";}
-  else $("#overlayCard").style.display="none";
+  $("#overlayCard").style.display="none";
 
   // 同步逐格 scrubber
   const su=d.scrub_user||[], sd=d.scrub_djoko||[], sp=d.scrub_phases||[], ax=d.seq_axis;

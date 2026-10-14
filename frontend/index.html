@@ -213,7 +213,7 @@
     </div>
     <div class="card" id="scrubCard">
       <h3>逐帧同步对比</h3>
-      <div class="sub" id="scrubSub">拖滑杆，你和基准按<b>同一挥拍相位</b>同步逐帧。费德勒没有逐帧原片，选他时只保留你的画面和发力曲线。</div>
+      <div class="sub" id="scrubSub">拖滑杆，你和基准按<b>同一挥拍相位</b>同步逐帧。</div>
       <div class="scrubRow">
         <div class="scrubCol"><img id="scrubUser" alt="你"><div class="cap">你</div></div>
         <div class="scrubCol" id="scrubDjokoCol"><img id="scrubDjoko" alt="基准"><div class="cap" id="scrubCap">德约</div></div>
@@ -475,6 +475,11 @@ function paint(d){
     scrubCard.style.display="";
     $("#scrubCap").textContent=refName;
     $("#scrubDjokoCol").style.display=sd.length?"":"none";
+    $("#scrubSub").innerHTML = sd.length
+      ? (d.ref_key==="federer_normal"
+          ? `拖滑杆，你和${refName}按<b>同一挥拍相位</b>同步逐帧。基准原片是 frame 165。`
+          : `拖滑杆，你和${refName}按<b>同一挥拍相位</b>同步逐帧。`)
+      : `这个基准还没有逐帧原片，下面只保留你的画面和发力曲线。`;
     if(d.sequence_chart)$("#scrubMini").src=d.sequence_chart;   // 滑杆正下方的小时间轴(同屏可见)
     slr.max=su.length-1;
     let ci=0,best=9; sp.forEach((v,i)=>{if(Math.abs(v)<best){best=Math.abs(v);ci=i;}});

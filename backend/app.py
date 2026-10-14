@@ -55,6 +55,7 @@ def _load_catalog() -> dict:
     catalog = {
         "djokovic": {
             "doc": REFERENCE, "label": "德约", "scrub": True,
+            "scrub_dir": "djoko_scrub", "contact_asset": "djokovic_contact.jpg",
             "note": "", "facing": _facing_of(REFERENCE),
         }
     }
@@ -83,7 +84,7 @@ def _load_catalog() -> dict:
             doc["metrics_band"] = normal_band
         label = "费德勒" if variant == "normal" else "费德勒·" + VARIANT_ZH.get(variant, variant)
         if variant == "normal":
-            note = "费德勒正手绿带是这 7 支的实际最小到最大，不是中间一半。样本少，这 7 支的高度和前伸都算合理。"
+            note = "费德勒正手绿带是这 7 支的实际最小到最大。逐帧对比用 frame 165。"
         elif borrowed:
             note = f"影子和动力链曲线用{label}。评分仍对照费德勒一般正手（这支特殊球只有 1 条，不能单独当尺子）。"
         else:
@@ -91,7 +92,10 @@ def _load_catalog() -> dict:
         if variant == "running":
             note += "这支机位偏正，影子只供参考。"
         catalog[key] = {
-            "doc": doc, "label": label, "scrub": False, "note": note,
+            "doc": doc, "label": label, "scrub": variant == "normal",
+            "scrub_dir": "federer_scrub" if variant == "normal" else "",
+            "contact_asset": "federer_contact.jpg" if variant == "normal" else "",
+            "note": note,
             "facing": _facing_of(doc),
         }
     return catalog
@@ -139,11 +143,14 @@ def _asset_ver() -> str:
     """德约静态图内容哈希, 作为资源URL版本号 → 图一变就强制浏览器重新下载,
     根治'重新生成了同名图但手机Safari仍显示旧缓存'的问题。"""
     import hashlib
-    try:
-        with open(os.path.join(FRONTEND, "assets", "djokovic_contact.jpg"), "rb") as fh:
-            return hashlib.md5(fh.read()).hexdigest()[:8]
-    except OSError:
-        return "1"
+    blob = b""
+    for name in ("djokovic_contact.jpg", "federer_contact.jpg"):
+        try:
+            with open(os.path.join(FRONTEND, "assets", name), "rb") as fh:
+                blob += fh.read()
+        except OSError:
+            continue
+    return hashlib.md5(blob).hexdigest()[:8] if blob else "1"
 
 
 ASSET_VER = _asset_ver()
@@ -258,10 +265,12 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
         "kinetic_chart": chart, "sequence_chart": seq_chart, "seq_axis": shadow.SEQ_AXIS,
         "shadow_overlay": overlay,
         "user_contact": user_contact,
-        "djokovic_contact": (f"/assets/djokovic_contact.jpg?v={ASSET_VER}" if meta["scrub"] else None),
+        "djokovic_contact": (f"/assets/{meta['contact_asset']}?v={ASSET_VER}"
+                             if meta.get("scrub") and meta.get("contact_asset") else None),
         "scrub_user": scrub_user,
-        "scrub_djoko": ([f"/assets/djoko_scrub/{i:02d}.jpg?v={ASSET_VER}"
-                         for i in range(len(shadow.SCRUB_PHASES))] if meta["scrub"] else []),
+        "scrub_djoko": ([f"/assets/{meta['scrub_dir']}/{i:02d}.jpg?v={ASSET_VER}"
+                         for i in range(len(shadow.SCRUB_PHASES))]
+                        if meta.get("scrub") and meta.get("scrub_dir") else []),
         "scrub_phases": shadow.SCRUB_PHASES,
         "ref_key": ref_key if ref_key in CATALOG else "djokovic",
         "ref_label": meta["label"],

@@ -34,6 +34,7 @@
   .hint{font-size:12.5px;color:var(--muted);margin-top:12px}
   #fileName{font-size:13px;color:var(--green);margin-top:10px;word-break:break-all}
   .handlabel{font-size:12.5px;color:var(--muted);margin:2px 0 6px}
+  .refsel{width:100%;max-width:420px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-bottom:12px;background:#fff}
   .handsel{display:flex;gap:8px;justify-content:center;margin-bottom:6px}
   .handsel button{flex:1;max-width:130px;border:1px solid var(--line);background:#fff;color:var(--muted);
        border-radius:10px;padding:9px;font-size:14px;font-weight:600;cursor:pointer}
@@ -125,16 +126,22 @@
       🎬 強烈建議使用手機的「慢動作」模式拍攝（120/240 fps），才能完整分析發力時序、蓄力幅度與轉體時機
     </div>
     <div class="handlabel">比較基準</div>
-    <select id="refSel" style="width:100%;max-width:420px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-bottom:12px;background:#fff">
+    <select id="refSel" class="refsel">
       <option value="djokovic">喬科維奇・正拍</option>
-      <option value="federer_normal">費德勒・正拍</option>
-      <option value="federer_highball">費德勒・高球（不評分，僅供動作比較）</option>
-      <option value="federer_lowball">費德勒・低球（不評分，僅供動作比較）</option>
-      <option value="federer_approach_normal">費德勒・攻擊球（不評分，僅供動作比較）</option>
-      <option value="federer_approach_high">費德勒・高位攻擊球（不評分，僅供動作比較）</option>
-      <option value="federer_topspin">費德勒・上旋球 Topspin（不評分，僅供動作影子比較）</option>
-      <option value="federer_running">費德勒・跑動中擊球（不評分，僅供動作比較）</option>
+      <option value="federer">費德勒・正拍</option>
     </select>
+    <div id="fedWrap" style="display:none">
+      <div class="handlabel">球種</div>
+      <select id="fedSel" class="refsel">
+        <option value="federer_normal">普通</option>
+        <option value="federer_highball">高球（不評分，僅供動作比較）</option>
+        <option value="federer_lowball">低球（不評分，僅供動作比較）</option>
+        <option value="federer_approach_normal">攻擊球（不評分，僅供動作比較）</option>
+        <option value="federer_approach_high">高位攻擊球（不評分，僅供動作比較）</option>
+        <option value="federer_topspin">上旋球 Topspin（不評分，僅供動作影子比較）</option>
+        <option value="federer_running">跑動中擊球（不評分，僅供動作比較）</option>
+      </select>
+    </div>
     <div class="handlabel">你的持拍手</div>
     <div class="handsel" id="handsel">
       <button data-h="auto" class="on">自動判斷</button>
@@ -255,6 +262,14 @@ let chosen=null, session=null;
 let lastResult=null, _djokoB64=null, _djokoContactB64=null, _restoring=false;   // 本地持久化/历史用
 
 let handChoice="auto";
+function selectedRef(){
+  return $("#refSel").value==="federer" ? $("#fedSel").value : $("#refSel").value;
+}
+$("#refSel").onchange=()=>{
+  const fed=$("#refSel").value==="federer";
+  $("#fedWrap").style.display=fed?"":"none";
+  if(fed) $("#fedSel").value="federer_normal";
+};
 document.querySelectorAll("#handsel button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#handsel button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");handChoice=b.dataset.h;
@@ -277,7 +292,7 @@ analyzeBtn.onclick=async()=>{
   if(!chosen)return;
   err.style.display="none";uploadCard.style.display="none";$("#historyCard").style.display="none";spinner.classList.add("on");
   try{
-    const fd=new FormData();fd.append("video",chosen);fd.append("hand",handChoice);fd.append("reference",$("#refSel").value);
+    const fd=new FormData();fd.append("video",chosen);fd.append("hand",handChoice);fd.append("reference",selectedRef());
     const r=await fetch("/api/analyze",{method:"POST",body:fd});
     const data=await r.json();
     if(!r.ok||!data.ok)throw new Error(data.detail||"分析失敗，請再試一次");
@@ -396,7 +411,7 @@ async function applySegment(){
     const fd=new FormData();
     fd.append("token",session.token); fd.append("contact",-1);
     fd.append("seg_lo",a); fd.append("seg_hi",b);
-    fd.append("reference",$("#refSel").value);
+    fd.append("reference",selectedRef());
     const r=await fetch("/api/recompute",{method:"POST",body:fd});
     const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.detail||"分析失敗，請再試一次");
     refreshAfterRecompute(d);
@@ -438,7 +453,7 @@ contactSlider.onchange=async()=>{
   contactAdj.classList.add("busy"); cstatus.textContent="重新分析中…";
   try{
     const fd=new FormData();fd.append("token",session.token);fd.append("contact",f);
-    fd.append("reference",$("#refSel").value);
+    fd.append("reference",selectedRef());
     if(segCard.style.display!=="none"){ fd.append("seg_lo",segStart.value); fd.append("seg_hi",segEnd.value); }
     const r=await fetch("/api/recompute",{method:"POST",body:fd});
     const d=await r.json();

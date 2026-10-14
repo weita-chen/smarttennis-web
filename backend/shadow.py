@@ -1,8 +1,8 @@
 """
 shadow.py — 服务端渲染动力链图 + 影子骨架叠加, 返回 base64 PNG
 ==============================================================
-- render_kinetic_chart: 五环节归一化曲线 + X-factor, 可叠加德约理想曲线
-- render_shadow_overlay: 用户 vs 德约 在 contact 帧的骨架, 归一化身材后叠加
+- render_kinetic_chart: 五环节归一化曲线 + X-factor, 可叠加喬科維奇理想曲线
+- render_shadow_overlay: 用户 vs 喬科維奇 在 contact 帧的骨架, 归一化身材后叠加
 """
 from __future__ import annotations
 import base64, io
@@ -17,11 +17,11 @@ CONNECTIONS = [
     (11, 12), (11, 23), (12, 24), (23, 24),          # 躯干
     (12, 14), (14, 16), (11, 13), (13, 15),          # 双臂
     (24, 26), (26, 28), (23, 25), (25, 27),          # 双腿
-    (0, 11), (0, 12),                                # 头-肩
+    (0, 11), (0, 12),                                # 头-肩膀
 ]
 L_SH, R_SH, L_HIP, R_HIP = 11, 12, 23, 24
 SIGNAL_STYLE = [
-    ("hip", "髋转动", "#2ca02c"), ("shoulder", "肩转动", "#1f77b4"),
+    ("hip", "髖部轉動", "#2ca02c"), ("shoulder", "肩膀轉動", "#1f77b4"),
     ("upper_arm", "上臂", "#9467bd"), ("forearm", "前臂", "#ff7f0e"),
     ("wrist", "手腕速度", "#d62728"),
 ]
@@ -70,7 +70,7 @@ def _use_cjk_font():
     return False
 
 
-_SEG_STYLE = [("hip", "髋", "#2e7d32"), ("shoulder", "肩", "#1f77b4"),
+_SEG_STYLE = [("hip", "髖部", "#2e7d32"), ("shoulder", "肩膀", "#1f77b4"),
               ("upper_arm", "上臂", "#9467bd"), ("forearm", "前臂", "#ff7f0e"),
               ("wrist", "手腕", "#d62728")]
 # 无中文字体时的英文兜底标签 (比 k[:2]='hi/sh/up' 易懂)
@@ -80,9 +80,9 @@ _SEG_EN = {"hip": "Hip", "shoulder": "Shoulder", "upper_arm": "U.arm",
 
 def render_sequence_timeline(user_pt: dict, ref_pt: dict,
                              user_loading: float, ref_loading: float,
-                             locked: bool = False) -> str:
-    """极简发力时间轴: 每个部位一个点(发力时刻, 相位), 你(上)/德约(下)两行。
-    一眼看'谁先谁后、和德约差多少' —— 比5条交叠曲线直观得多。"""
+                             locked: bool = False, ref_name: str = "喬科維奇") -> str:
+    """极简发力时间轴: 每个部位一个点(发力时刻, 相位), 你(上)/喬科維奇(下)两行。
+    一眼看'谁先谁后、和喬科維奇差多少' —— 比5条交叠曲线直观得多。"""
     cjk = _use_cjk_font()
     du = user_loading if user_loading and user_loading > 1e-3 else 1.0
     dr = ref_loading if ref_loading and ref_loading > 1e-3 else 1.0
@@ -90,9 +90,9 @@ def render_sequence_timeline(user_pt: dict, ref_pt: dict,
     fig, ax = plt.subplots(figsize=(7.2, 2.9))
     fig.subplots_adjust(left=SEQ_AXIS["left"], right=SEQ_AXIS["right"], top=0.80, bottom=0.20)
     rows = [(1.0, "你" if cjk else "You", user_pt, du),
-            (0.0, "德约" if cjk else "Djokovic", ref_pt, dr)]
+            (0.0, ref_name if cjk else "Djokovic", ref_pt, dr)]
     # 各环节挤在 ~3 帧内(<0.10s)= 低于手机帧率分辨率, 精确先后是噪声 → 淡化用户5点、收成"一团",
-    # 不当判决, 把结论交给抗噪指标(击球前旋转完成度 / 发力链顺序 组级)。
+    # 不当判决, 把结论交给抗噪指标(擊球前旋转完成度 / 发力链顺序 组级)。
     uvals = [user_pt.get(k) for k, _zh, _c in _SEG_STYLE if user_pt.get(k) is not None]
     user_bunched = len(uvals) >= 3 and (max(uvals) - min(uvals)) < 0.10
     for y, name, pt, load in rows:
@@ -100,7 +100,7 @@ def render_sequence_timeline(user_pt: dict, ref_pt: dict,
             continue
         # 置信锁: 装载帧数不足时用户时序是量化噪声, 不画点、只留解锁提示(与指标锁一致)
         if locked and y == 1.0:
-            ax.text(0.0, y, "🔒 你的发力时序需慢动作视频解锁 (当前前挥帧数不足)" if cjk
+            ax.text(0.0, y, "🔒 發力時序分析需使用慢動作影片才能解鎖（目前前揮影格數不足）" if cjk
                     else "locked: needs slow-motion video", ha="center", va="center",
                     fontsize=10, color="#7d8783", fontweight="bold")
             ax.text(xmin + 0.04, y, "你" if cjk else "You",
@@ -115,7 +115,7 @@ def render_sequence_timeline(user_pt: dict, ref_pt: dict,
         if faded:                                        # 淡化的点上盖一团 + 把结论引到抗噪指标
             cx = float(np.mean(xs))
             ax.scatter([cx], [y], s=1400, color="#c0392b", alpha=0.10, zorder=2)
-            ax.text(cx, y - 0.34, "挤在一起·此帧率分不清精细先后 → 看下方『击球前旋转完成度』" if cjk
+            ax.text(cx, y - 0.34, "峰值太接近，這個影格率無法分辨細微先後 → 請參考下方的「擊球前旋轉完成度」" if cjk
                     else "bunched (low fps) — see diagnosis below",
                     ha="center", va="top", fontsize=7.5, color="#c0392b", fontweight="bold")
         ax.text(xmin + 0.04, y, name, ha="left", va="center", fontsize=12, fontweight="bold")
@@ -127,20 +127,21 @@ def render_sequence_timeline(user_pt: dict, ref_pt: dict,
     ax.axvline(0, ls="--", color="gray", lw=1)
     # 判读要点: 职业各环节峰速间隔仅几十毫秒(质心统计下点本就会聚拢), 可靠信号是
     # "点相对触球线的位置"——都在左侧=发力在触球前完成; 贴着/越过=发力偏晚。
-    ax.text(xmin + 0.04, -0.62, "点在触球线(0)左侧=发力在触球前完成(德约式)；贴着/越过=发力偏晚" if cjk
+    ax.text(xmin + 0.04, -0.62, f"標記在觸球線（0）左側＝發力在觸球前完成（{ref_name}式）；貼近或越過觸球線＝發力可能偏晚" if cjk
             else "dots left of contact line = power before contact (pro-like)", ha="left", fontsize=8.5, color="#888")
     ax.set_xlim(xmin, SEQ_AXIS["xmax"]); ax.set_ylim(-0.8, 1.8)
-    ax.set_yticks([]); ax.set_xlabel("挥拍相位 (0=击球)" if cjk else "swing phase (0=contact)", fontsize=9)
+    ax.set_yticks([]); ax.set_xlabel("揮拍階段（0＝擊球）" if cjk else "swing phase (0=contact)", fontsize=9)
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
     return _fig_to_b64(fig, tight=False)   # 固定边距 → 前端可精确定位竖线
 
 
 def render_power_transfer(signals: dict, contact_t: float, user_loading_s: float,
-                          ideal_curve: dict | None = None, locked: bool = False) -> str:
-    """新手主视图"转体时机": 身体(髋+肩)转动速度曲线, 以击球线为界填充前/后阴影,
-    可视化 rot_pre_frac(击球前完成的转体占比)——本管线唯一测得准的时序信号。
-    读法: 绿色阴影在击球线左侧越多 = 转体越早完成(德约式); 堆在右侧 = 边打边转。
+                          ideal_curve: dict | None = None, locked: bool = False,
+                          ref_name: str = "喬科維奇") -> str:
+    """新手主视图"转体时机": 身体(髖部+肩膀)转动速度曲线, 以擊球线为界填充前/后阴影,
+    可视化 rot_pre_frac(擊球前完成的转体占比)——本管线唯一测得准的时序信号。
+    读法: 绿色阴影在擊球线左侧越多 = 转体越早完成(喬科維奇式); 堆在右侧 = 边打边转。
     手臂(腕速)保留为细线陪衬"力最终交给手臂"的直觉, 不做峰值先后判读
     (2026-07-08 实测: 身体vs手臂峰值滞后中位0, 合并曲线比不出精细先后, 故不呈现)。
     坐标与 SEQ_AXIS 完全一致 → 前端滑杆竖线逻辑零改动。"""
@@ -153,10 +154,10 @@ def render_power_transfer(signals: dict, contact_t: float, user_loading_s: float
     xmin, xmax = SEQ_AXIS["xmin"], SEQ_AXIS["xmax"]
     fig, ax = plt.subplots(figsize=(7.2, 3.1))
     fig.subplots_adjust(left=SEQ_AXIS["left"], right=SEQ_AXIS["right"], top=0.80, bottom=0.30)
-    # 身体转动的前/后阴影(rot_pre 可视化): 击球线左侧=绿(击球前转好), 右侧=琥珀(边打边转)
+    # 身体转动的前/后阴影(rot_pre 可视化): 擊球线左侧=绿(擊球前转好), 右侧=琥珀(边打边转)
     ax.fill_between(t, 0, body, where=(t <= 0), color="#2e7d32", alpha=0.22, zorder=0)
     ax.fill_between(t, 0, body, where=(t >= 0), color="#d9a441", alpha=0.22, zorder=0)
-    if ideal_curve:                                   # 德约参考(虚线): 身体 + 手臂 都画, 与"你"对称
+    if ideal_curve:                                   # 喬科維奇参考(虚线): 身体 + 手臂 都画, 与"你"对称
         dj = float(ideal_curve.get("loading_s") or 0.0) or 1.0
         ti = np.asarray(ideal_curve["t"]) / dj
         k3 = np.ones(3) / 3.0                          # 降采样示范曲线, 轻平滑去毛刺(仅展示)
@@ -164,21 +165,21 @@ def render_power_transfer(signals: dict, contact_t: float, user_loading_s: float
         rb = np.convolve(rb / (rb.max() + 1e-9), k3, mode="same")
         ra = np.convolve(np.asarray(ideal_curve["wrist"], float), k3, mode="same")
         ax.plot(ti, rb, color="#2e7d32", lw=1.4, ls=":", alpha=0.7,
-                label=("德约·身体" if cjk else "pro body"))
+                label=(f"{ref_name}・身體" if cjk else "pro body"))
         ax.plot(ti, ra, color="#d62728", lw=1.2, ls=":", alpha=0.6,
-                label=("德约·手臂" if cjk else "pro arm"))
-    ax.plot(t, body, color="#2e7d32", lw=2.6, label=("你·身体(髋+肩)" if cjk else "you body"))
-    ax.plot(t, arm, color="#d62728", lw=1.6, alpha=0.8, label=("你·手臂(腕)" if cjk else "you arm"))
+                label=(f"{ref_name}・手臂" if cjk else "pro arm"))
+    ax.plot(t, body, color="#2e7d32", lw=2.6, label=("你・身體（髖部＋肩膀）" if cjk else "you body"))
+    ax.plot(t, arm, color="#d62728", lw=1.6, alpha=0.8, label=("你・手臂（手腕）" if cjk else "you arm"))
     ax.axvline(0, ls="--", color="gray", lw=1)
-    ax.text(0.02, 1.04, "击球" if cjk else "contact", fontsize=8.5, color="gray")
-    ax.legend(loc="upper left", fontsize=8, frameon=False, ncol=2)   # 2列: 身体/手臂 × 你/德约
-    note = ("绿色阴影在击球线左侧越多 = 身体转动越早完成(好)；堆在右侧 = 边打边转、转体偏晚"
+    ax.text(0.02, 1.04, "擊球" if cjk else "contact", fontsize=8.5, color="gray")
+    ax.legend(loc="upper left", fontsize=8, frameon=False, ncol=2)   # 2列: 身体/手臂 × 你/喬科維奇
+    note = ("綠色陰影越多落在擊球線左側，代表身體轉動越早完成；若集中在右側，可能表示邊擊球邊轉體、轉體偏晚。"
             if cjk else "more green area LEFT of contact = rotate earlier (good)")
     if locked:
-        note = ("※ 前挥帧数有限, 曲线仅供定性看趋势(慢动作可解锁精确数值)。" if cjk
+        note = ("※ 前揮影格數有限，曲線僅供觀察趨勢（使用慢動作影片可解鎖精確數值）。" if cjk
                 else "limited frames; qualitative trend only")
     ax.set_xlim(xmin, xmax); ax.set_ylim(-0.05, 1.18)
-    ax.set_yticks([]); ax.set_xlabel("挥拍相位 (0=击球)" if cjk else "swing phase (0=contact)", fontsize=9)
+    ax.set_yticks([]); ax.set_xlabel("揮拍階段（0＝擊球）" if cjk else "swing phase (0=contact)", fontsize=9)
     fig.text(SEQ_AXIS["left"], 0.03, note, ha="left", fontsize=8.2,
              color="#b97a1a" if locked else "#888")
     for sp_ in ("top", "right", "left"):
@@ -189,32 +190,32 @@ def render_power_transfer(signals: dict, contact_t: float, user_loading_s: float
 def render_kinetic_chart(signals: dict, contact_t: float,
                          ideal_curve: dict | None = None,
                          user_loading_s: float = 0.0) -> str:
-    """相位归一化对齐: 横轴 = 挥拍相位 (0=击球, -1=前挥起点)。
-    各自除以自己的"装载时长", 让两人在【前挥起点 + 击球】两点对齐, 跨节奏可比。
+    """相位归一化对齐: 横轴 = 揮拍階段（0＝擊球，-1＝前揮起點）。
+    各自除以自己的"装载时长", 让两人在【前揮起點 + 擊球】两点对齐, 跨节奏可比。
     """
     cjk = _use_cjk_font()
     lab = {"hip": "Hip", "shoulder": "Shoulder", "upper_arm": "Upper arm",
            "forearm": "Forearm", "wrist": "Wrist"}
     du = float(user_loading_s) if user_loading_s and user_loading_s > 1e-3 else 1.0
-    t = (np.asarray(signals["t"]) - float(contact_t)) / du   # 归一化相位, 击球=0
+    t = (np.asarray(signals["t"]) - float(contact_t)) / du   # 归一化相位, 擊球=0
     fig, (ax1, ax2) = plt.subplots(
         2, 1, figsize=(7.2, 4.6), gridspec_kw={"height_ratios": [3, 1]}, sharex=True)
     for key, zh, c in SIGNAL_STYLE:
         ax1.plot(t, signals["norm"][key], color=c, lw=1.8,
                  label=(zh if cjk else lab[key]))
-    if ideal_curve:                                   # 德约理想曲线 (淡虚线), 同样按相位归一化
+    if ideal_curve:                                   # 喬科維奇理想曲线 (淡虚线), 同样按相位归一化
         dj = float(ideal_curve.get("loading_s") or 0.0)
         dj = dj if dj > 1e-3 else 1.0
         ti = np.asarray(ideal_curve["t"]) / dj
         for key, _zh, c in SIGNAL_STYLE:
             ax1.plot(ti, ideal_curve[key], color=c, lw=1.0, ls=":", alpha=0.5)
     for ax in (ax1, ax2):
-        ax.axvline(0, ls="--", color="gray", lw=1)        # 击球
-        ax.axvline(-1, ls=":", color="#bbb", lw=1)        # 前挥起点
-    ax1.text(0, 1.14, ("击球" if cjk else "contact"), ha="center", fontsize=8, color="gray")
-    ax1.text(-1, 1.14, ("前挥起点" if cjk else "swing start"), ha="center", fontsize=7.5, color="#aaa")
-    ax1.set_ylabel("归一化角速度/速度" if cjk else "normalized speed", fontsize=9)
-    title = ("动力链时序 (实线=你, 虚线=德约; 已相位对齐)" if cjk
+        ax.axvline(0, ls="--", color="gray", lw=1)        # 擊球
+        ax.axvline(-1, ls=":", color="#bbb", lw=1)        # 前揮起點
+    ax1.text(0, 1.14, ("擊球" if cjk else "contact"), ha="center", fontsize=8, color="gray")
+    ax1.text(-1, 1.14, ("前揮起點" if cjk else "swing start"), ha="center", fontsize=7.5, color="#aaa")
+    ax1.set_ylabel("正規化角速度／速度" if cjk else "normalized speed", fontsize=9)
+    title = ("動力鏈時序（實線＝你，虛線＝職業球員）" if cjk
              else "Kinetic chain (solid=you, dotted=Djokovic; phase-aligned)")
     ax1.set_title(title, fontsize=10)
     ax1.legend(fontsize=7, ncol=3, loc="upper left")
@@ -227,13 +228,13 @@ def render_kinetic_chart(signals: dict, contact_t: float,
         ax2.plot(np.asarray(ideal_curve["t"]) / dj, ideal_curve["xfactor"],
                  color="#9467bd", lw=1.0, ls=":", alpha=0.5)
     ax2.set_ylabel("X-factor (°)", fontsize=9)
-    ax2.set_xlabel("挥拍相位 (0=击球, -1=前挥起点)" if cjk
+    ax2.set_xlabel("揮拍階段（0＝擊球，-1＝前揮起點）" if cjk
                    else "swing phase (0=contact, -1=swing start)", fontsize=9)
     return _fig_to_b64(fig)
 
 
 def _normalize_skeleton(pose_img, mirror: bool = False) -> np.ndarray:
-    """img 坐标(33×2, y向下) → 以髋中心为原点、躯干长为单位、y向上 的骨架。"""
+    """img 坐标(33×2, y向下) → 以髖部中心为原点、躯干长为单位、y向上 的骨架。"""
     p = np.array(pose_img, dtype=float)[:, :2]
     p[:, 1] = -p[:, 1]                                # y 翻成向上
     if mirror:
@@ -247,7 +248,7 @@ def _normalize_skeleton(pose_img, mirror: bool = False) -> np.ndarray:
 def _project_canonical_sideview(world33) -> np.ndarray:
     """world 3D 关节点 → 统一侧视(矢状面)的 2D 骨架, 与拍摄机位无关。
 
-    用解剖坐标系(右髋-左髋=左右轴, 髋→肩=躯干向上)推出'前方'=cross(右,上),
+    用解剖坐标系(右髖部-左髖部=左右轴, 髖部→肩膀=躯干向上)推出'前方'=cross(右,上),
     再投影到 (前方, 上) 平面 → 不管原视频是正侧/斜前拍, 都还原成同一虚拟侧视相机,
     从根本上消除'骨架宽度不一致'。以躯干长归一化大小。
     """
@@ -275,7 +276,7 @@ def _draw_skeleton(ax, pts, color, alpha=1.0, lw=2.2):
 
 
 def draw_skeleton_on_frame(frame_bgr: np.ndarray, pose_img, max_w: int = 900) -> str:
-    """把 2D 骨架画在真实视频帧上, 返回 base64 JPEG (直观显示击球瞬间)。
+    """把 2D 骨架画在真实视频帧上, 返回 base64 JPEG (直观显示擊球瞬间)。
     pose_img: 33×(x,y,...) 归一化坐标 [0,1]。"""
     h, w = frame_bgr.shape[:2]
     p = np.array(pose_img, dtype=float)[:, :2] * [w, h]
@@ -293,8 +294,8 @@ def draw_skeleton_on_frame(frame_bgr: np.ndarray, pose_img, max_w: int = 900) ->
     return "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()
 
 
-# 同步 scrubber 的统一相位采样点 (τ: 0=击球, -1≈前挥起点)。两人共用 → 帧一一对应。
-# 必须精确包含 τ=0(索引13): 使 scrubber 的"击球"帧 == 静态击球图帧 == REF_CONTACT, 永远一致。
+# 同步 scrubber 的统一相位采样点 (τ: 0=擊球, -1≈前揮起點)。两人共用 → 帧一一对应。
+# 必须精确包含 τ=0(索引13): 使 scrubber 的"擊球"帧 == 静态擊球图帧 == REF_CONTACT, 永远一致。
 SCRUB_PHASES = [round(-0.975 + i * 0.075, 3) for i in range(21)]   # -0.975..+0.525, 0 在索引13
 
 
@@ -333,7 +334,7 @@ def scrub_strip_at(video_path: str, frames_lm, frame_indices, width: int = 240,
 def scrub_strip(video_path: str, frames_lm, contact: int, loading_s: float,
                 fps: float, width: int = 240, bounds=None,
                 video_offset: int = 0) -> list:
-    """沿统一相位轴(SCRUB_PHASES, 线性)生成帧条。德约预生成静态条用它。
+    """沿统一相位轴(SCRUB_PHASES, 线性)生成帧条。喬科維奇预生成静态条用它。
     bounds=(lo,hi) 时把帧钳制在用户所选挥拍片段内, 不越界到片段外(随挥侧尤甚)。
     video_offset 见 scrub_strip_at: 切片数据传 frame_range[0]。"""
     idx = [int(round(contact + tau * loading_s * fps)) for tau in SCRUB_PHASES]
@@ -364,7 +365,7 @@ def render_shadow_overlay(user_pose_img, ref_pose_img, mirror_user: bool = False
         user = _normalize_skeleton(user_pose_img, mirror=mirror_user)
         ref = _normalize_skeleton(ref_pose_img)
     fig, axes = plt.subplots(1, 3, figsize=(8.4, 3.4))
-    titles = (["你 (击球瞬间)", "德约 (击球瞬间)", "叠加对比"] if cjk
+    titles = (["你（擊球瞬間）", "職業球員（擊球瞬間）", "疊合比較"] if cjk
               else ["You (contact)", "Djokovic (contact)", "Overlay"])
     _draw_skeleton(axes[0], user, "#1f77b4")
     _draw_skeleton(axes[1], ref, "#ff7f0e")

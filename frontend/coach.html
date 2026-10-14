@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>SmartTennis · 教练评测</title>
+<title>WitnessTennis・教練評分</title>
 <style>
   :root{--green:#0b6b3a;--bg:#f5f7f6;--card:#fff;--ink:#1c2620;--muted:#6b7770;--line:#e3e8e5}
   *{box-sizing:border-box}
@@ -44,47 +44,47 @@
 </style>
 </head>
 <body>
-<header><h1>🎾 SmartTennis · 教练评测</h1></header>
+<header><h1>WitnessTennis・教練評分</h1></header>
 <div class="wrap">
 
   <div class="card" id="loginCard">
-    <p style="margin-top:0">请输入您的<b>授权码</b>开始评测。评测约需 30~40 分钟,可中途退出、下次凭码续评。</p>
-    <input type="text" id="codeInput" placeholder="授权码" autocomplete="off">
-    <button class="btn" id="loginBtn">进入评测</button>
+    <p style="margin-top:0">請輸入授權碼以開始評分。整個流程約需 30～40 分鐘，可中途離開，下次再使用授權碼繼續。</p>
+    <input type="text" id="codeInput" placeholder="授權碼" autocomplete="off">
+    <button class="btn" id="loginBtn">開始評分</button>
     <p class="muted" id="loginMsg"></p>
-    <p class="muted">说明:您将逐条观看正手挥拍视频并打分。视频可反复播放。请凭您的专业判断独立评分——不同片段之间水平差异可能很大,也可能有相似的。</p>
+    <p class="muted">說明：你將逐一觀看正拍揮拍影片並評分。影片可以重複播放。請依照你的專業判斷獨立評分；不同片段的程度可能差異很大，也可能相近。</p>
   </div>
 
   <div class="card" id="rateCard" style="display:none">
     <div class="prog" id="prog"></div>
     <video id="vid" controls loop playsinline></video>
-    <div style="margin-top:12px;font-weight:700">这一拍的整体技术水平 (1=很差, 10=职业级)</div>
+    <div style="margin-top:12px;font-weight:700">這一拍的整體技術水準（1＝很差，10＝職業級）</div>
     <div class="scorerow" id="scoreRow"></div>
-    <div style="font-weight:700">总体判断</div>
+    <div style="font-weight:700">整體判斷</div>
     <div class="gbrow">
-      <button class="g" id="goodBtn">👍 动作合格/好</button>
-      <button class="b" id="badBtn">👎 有明显问题</button>
+      <button class="g" id="goodBtn">👍 動作合格／良好</button>
+      <button class="b" id="badBtn">👎 有明顯問題</button>
     </div>
-    <div class="qlabel">问题出在哪？<span>(可多选 / 可跳过，第一个＝主要问题)</span></div>
+    <div class="qlabel">問題在哪裡？<span>（可複選，也可略過；第一項會列為主要問題）</span></div>
     <div class="chiprow" id="faultRow"></div>
-    <div class="qlabel">看得清吗？<span>(可选)</span></div>
+    <div class="qlabel">畫面看得清楚嗎？<span>（選填）</span></div>
     <div class="chiprow" id="clarityRow"></div>
-    <textarea id="comment" placeholder="(可选) 一句话点评, 如: 引拍太晚 / 击球点漂亮"></textarea>
-    <button class="btn" id="confirmBtn" disabled>确认此条 →</button>
-    <p class="muted" style="text-align:center;margin-bottom:0"><span class="editlink" id="toSummary">查看已评汇总</span></p>
+    <textarea id="comment" placeholder="（選填）一句話點評，例如：引拍太晚／擊球點漂亮"></textarea>
+    <button class="btn" id="confirmBtn" disabled>確認這一筆 →</button>
+    <p class="muted" style="text-align:center;margin-bottom:0"><span class="editlink" id="toSummary">查看已評分總覽</span></p>
   </div>
 
   <div class="card" id="sumCard" style="display:none">
-    <h3 style="margin-top:0">评分汇总(提交前请过目)</h3>
-    <table id="sumTable"><thead><tr><th>#</th><th>分数</th><th>判断</th><th>改</th></tr></thead><tbody></tbody></table>
-    <button class="btn" id="submitBtn">确认无误, 最终提交</button>
-    <button class="btn sec" id="backBtn">返回继续评分</button>
-    <p class="muted">最终提交后不可再修改。</p>
+    <h3 style="margin-top:0">評分總覽（提交前請確認）</h3>
+    <table id="sumTable"><thead><tr><th>#</th><th>分數</th><th>判斷</th><th>修改</th></tr></thead><tbody></tbody></table>
+    <button class="btn" id="submitBtn">確認無誤，正式提交</button>
+    <button class="btn sec" id="backBtn">返回繼續評分</button>
+    <p class="muted">正式提交後就無法再修改。</p>
   </div>
 
   <div class="card" id="doneCard" style="display:none">
     <div class="done">✅</div>
-    <p style="text-align:center;font-weight:700">评测已提交, 非常感谢您的专业时间!</p>
+    <p style="text-align:center;font-weight:700">評分已提交，非常感謝你撥冗提供專業意見！</p>
   </div>
 </div>
 
@@ -102,7 +102,7 @@ $("#loginBtn").onclick=async()=>{
     if(r.submitted){show("doneCard");return;}
     idx=CLIPS.findIndex(c=>!DONE.has(c)); if(idx<0)idx=0;
     show("rateCard"); load();
-  }catch(e){$("#loginMsg").textContent="进入失败: "+e.message;}
+  }catch(e){$("#loginMsg").textContent="進入失敗： "+e.message;}
 };
 
 function show(id){["loginCard","rateCard","sumCard","doneCard"].forEach(c=>$("#"+c).style.display=c===id?"":"none");}
@@ -116,10 +116,10 @@ $("#badBtn").onclick=()=>{good=false;$("#badBtn").classList.add("on");$("#goodBt
 function check(){$("#confirmBtn").disabled=!(score>0&&good!==null);}  // 芯片/清晰度可选, 不参与放行
 
 // 原因芯片(教练行话, code 与后端白名单一致); 有序=第一个是主要问题
-const FAULTS=[["contact_late","击球点太靠后"],["contact_early","击球点太靠前"],
-  ["contact_low","击球点太低"],["contact_high","击球点太高"],["arm_only","纯手臂打"],
-  ["no_load","引拍没拉开"],["rotate_late","身体转晚了"],["footwork","步法没到位"],
-  ["finish","收拍不完整"],["balance","重心/平衡"],["tempo","节奏/时机乱"],["other","其它"]];
+const FAULTS=[["contact_late","擊球點太靠後"],["contact_early","擊球點太靠前"],
+  ["contact_low","擊球點太低"],["contact_high","擊球點太高"],["arm_only","只用手臂擊球"],
+  ["no_load","引拍幅度不足"],["rotate_late","身體轉體太晚"],["footwork","步法不到位"],
+  ["finish","收拍不完整"],["balance","重心／平衡"],["tempo","節奏／時機不順"],["other","其他"]];
 let faults=[], clarity=0;
 const faultRow=$("#faultRow");
 FAULTS.forEach(([code,label])=>{const b=document.createElement("div");
@@ -130,16 +130,16 @@ function renderFaults(){[...faultRow.children].forEach(el=>{
   el.classList.toggle("on",faults.includes(el.dataset.code));
   el.classList.toggle("primary",faults[0]===el.dataset.code);});}
 const clarityRow=$("#clarityRow");
-[[3,"清楚"],[2,"一般"],[1,"看不清"]].forEach(([v,label])=>{const b=document.createElement("div");
+[[3,"清楚"],[2,"普通"],[1,"看不清楚"]].forEach(([v,label])=>{const b=document.createElement("div");
   b.className="chip";b.textContent=label;b.dataset.v=v;
   b.onclick=()=>{clarity=(clarity===v?0:v); renderClarity();};clarityRow.appendChild(b);});
 function renderClarity(){[...clarityRow.children].forEach(el=>el.classList.toggle("on",+el.dataset.v===clarity));}
 
 $("#vid").onerror=()=>{$("#confirmBtn").disabled=true;
-  alert("视频加载失败, 请检查网络后刷新; 若反复失败请把当前条号告知管理员");};
+  alert("影片載入失敗，請確認網路連線後重新整理；若持續失敗，請將目前的項目編號告知管理員");};
 function load(){
   const id=CLIPS[idx];
-  $("#prog").textContent=`第 ${idx+1} / ${CLIPS.length} 条` + (DONE.has(id)?"(已评, 可修改)":"");
+  $("#prog").textContent=`第 ${idx+1}／${CLIPS.length} 段` + (DONE.has(id)?"（已評分，可修改）":"");
   $("#vid").src=`/api/coach/clip/${id}?code=${encodeURIComponent(CODE)}`;
   score=0;good=null;$("#comment").value="";
   faults=[];clarity=0;renderFaults();renderClarity();
@@ -163,14 +163,14 @@ $("#backBtn").onclick=()=>{const nxt=CLIPS.findIndex(c=>!DONE.has(c));idx=nxt<0?
 function renderSummary(){
   const tb=$("#sumTable tbody");tb.innerHTML="";
   CLIPS.forEach((c,i)=>{const d=DONE.has(c);
-    tb.insertAdjacentHTML("beforeend",`<tr><td>${i+1}</td><td>${d?"✓":"—"}</td><td>${d?"":"未评"}</td>`+
-      `<td><span class="editlink" data-i="${i}">${d?"改":"去评"}</span></td></tr>`);});
+    tb.insertAdjacentHTML("beforeend",`<tr><td>${i+1}</td><td>${d?"✓":"—"}</td><td>${d?"":"尚未評分"}</td>`+
+      `<td><span class="editlink" data-i="${i}">${d?"修改":"前往評分"}</span></td></tr>`);});
   tb.querySelectorAll(".editlink").forEach(el=>el.onclick=()=>{idx=+el.dataset.i;show("rateCard");load();});
   $("#submitBtn").disabled=CLIPS.some(c=>!DONE.has(c));
 }
 $("#submitBtn").onclick=async()=>{
   try{await api("submit",{code:CODE});show("doneCard");}
-  catch(e){alert("提交失败: "+e.message);}
+  catch(e){alert("提交失敗： "+e.message);}
 };
 </script>
 </body>

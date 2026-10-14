@@ -79,7 +79,7 @@ def _save_rating(code: str, doc: dict) -> None:
 def _auth(code: str) -> dict:
     info = _codes().get(code or "")
     if not info:
-        raise HTTPException(403, "授权码无效")
+        raise HTTPException(403, "授權碼無效")
     return info
 
 
@@ -114,7 +114,7 @@ def login(req: LoginReq):
     info = _auth(req.code)
     items = _manifest()
     if not items:
-        return {"ok": False, "reason": "评测集尚未就绪, 请稍后再来"}
+        return {"ok": False, "reason": "評分資料尚未準備完成，請稍後再試"}
     doc = _load_rating(req.code)
     if doc.get("started_at") is None:
         doc["started_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -132,10 +132,10 @@ def clip(clip_id: str, code: str):
     _auth(code)
     it = next((x for x in _manifest() if x["id"] == clip_id), None)
     if it is None:
-        raise HTTPException(404, "无此片段")
+        raise HTTPException(404, "找不到此片段")
     path = os.path.normpath(os.path.join(COACH_DIR, it["file"]))
     if not path.startswith(os.path.normpath(COACH_DIR)) or not os.path.isfile(path):
-        raise HTTPException(404, "片段文件缺失")
+        raise HTTPException(404, "片段檔案遺失")
     return FileResponse(path, media_type="video/mp4")
 
 
@@ -143,13 +143,13 @@ def clip(clip_id: str, code: str):
 def rate(req: RateReq):
     _auth(req.code)
     if not any(x["id"] == req.clip_id for x in _manifest()):
-        raise HTTPException(404, "无此片段")
+        raise HTTPException(404, "找不到此片段")
     if isinstance(req.score, bool) or not 1 <= req.score <= 10:
-        raise HTTPException(422, "score 需在 1~10")
+        raise HTTPException(422, "score 必須介於 1～10")
     with _LOCK:
         doc = _load_rating(req.code)
         if doc.get("submitted"):
-            raise HTTPException(409, "已最终提交, 不可修改")
+            raise HTTPException(409, "已正式提交，無法再修改")
         # 芯片按白名单过滤+去重保序(第一个=主要问题), 截断到 MAX_FAULTS; 未知 code 丢弃
         seen = set()
         faults = [f for f in (req.faults or [])

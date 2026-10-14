@@ -1,10 +1,10 @@
 """
 app.py — SmartTennis MVP 后端 (FastAPI)
 ========================================
-POST /api/analyze  上传 10 秒正手视频 → 返回:
+POST /api/analyze  上传 10 秒正拍视频 → 返回:
     - 动力链时序图 (PNG, base64)
     - 影子骨架叠加图 (PNG, base64)
-    - 对照德约 IQR band 的诊断报告 (JSON)
+    - 对照喬科維奇 IQR band 的诊断报告 (JSON)
 GET  /            手机友好的前端页面
 GET  /api/health  健康检查
 """
@@ -29,13 +29,13 @@ MAX_UPLOAD = int(os.environ.get("MAX_UPLOAD_MB", "60")) * 1024 * 1024
 MAX_DURATION_S = int(os.environ.get("MAX_DURATION_S", "30"))   # 上传视频时长上限(秒)
 
 VARIANT_ZH = {
-    "normal": "正手",
+    "normal": "正拍",
     "highball": "高球",
     "lowball": "低球",
-    "approach_normal": "网前迎前",
-    "approach_high": "高位迎前",
-    "topspin": "上旋",
-    "running": "跑动",
+    "approach_normal": "網前迎擊",
+    "approach_high": "高位迎擊",
+    "topspin": "上旋球",
+    "running": "跑動中擊球",
 }
 
 app = FastAPI(title="SmartTennis MVP")
@@ -50,11 +50,11 @@ def _facing_of(ref: dict) -> float:
 
 
 def _load_catalog() -> dict:
-    """德约保持原基准。费德勒一般正手用 7 支暂用绿带；其余变体只换影子与曲线，
-    评分仍借用费德勒一般正手（单支样本不能当尺子）。"""
+    """喬科維奇保持原基准。費德勒一般正拍用 7 支暂用绿带；其余变体只换影子与曲线，
+    评分仍借用費德勒一般正拍（单支样本不能当尺子）。"""
     catalog = {
         "djokovic": {
-            "doc": REFERENCE, "label": "德约", "scrub": True,
+            "doc": REFERENCE, "label": "喬科維奇", "scrub": True,
             "scrub_dir": "djoko_scrub", "contact_asset": "djokovic_contact.jpg",
             "note": "", "facing": _facing_of(REFERENCE),
         }
@@ -82,15 +82,15 @@ def _load_catalog() -> dict:
                 continue
             doc = dict(doc)
             doc["metrics_band"] = normal_band
-        label = "费德勒" if variant == "normal" else "费德勒·" + VARIANT_ZH.get(variant, variant)
+        label = "費德勒" if variant == "normal" else "費德勒・" + VARIANT_ZH.get(variant, variant)
         if variant == "normal":
-            note = "费德勒正手绿带是这 7 支的实际最小到最大。逐帧对比用 frame 165。"
+            note = "費德勒的正拍綠色區帶。"
         elif borrowed:
-            note = f"影子和动力链曲线用{label}。评分仍对照费德勒一般正手（这支特殊球只有 1 条，不能单独当尺子）。"
+            note = f"影子和動力鏈曲線用{label}。評分仍對照費德勒一般正拍（這支特殊球只有 1 條，不能單獨當尺子）。"
         else:
             note = ""
         if variant == "running":
-            note += "这支机位偏正，影子只供参考。"
+            note += "動作影子僅供參考。"
         catalog[key] = {
             "doc": doc, "label": label, "scrub": variant == "normal",
             "scrub_dir": "federer_scrub" if variant == "normal" else "",
@@ -119,7 +119,7 @@ def _warmup() -> None:
 
 
 def _inject_rot_pre_band(ref: dict) -> None:
-    """从已有 ideal_curve 现导德约'击球前旋转完成度'参考值, 注入 metrics_band(无需重建参考)。
+    """从已有 ideal_curve 现导喬科維奇'击球前旋转完成度'参考值, 注入 metrics_band(无需重建参考)。
     band 宽度为启发式(只有单条代表曲线、非208条IQR); 日后重建参考可换成真IQR。"""
     try:
         ic = ref["reference"]["ideal_curve"]; t = ic["t"]; hip = ic["hip"]; sho = ic["shoulder"]
@@ -140,7 +140,7 @@ CATALOG = _load_catalog()
 
 
 def _asset_ver() -> str:
-    """德约静态图内容哈希, 作为资源URL版本号 → 图一变就强制浏览器重新下载,
+    """喬科維奇静态图内容哈希, 作为资源URL版本号 → 图一变就强制浏览器重新下载,
     根治'重新生成了同名图但手机Safari仍显示旧缓存'的问题。"""
     import hashlib
     blob = b""
@@ -186,11 +186,11 @@ def _ref_meta(ref_key: str) -> dict:
 
 
 def _apply_ref_language(report: dict, label: str, note: str) -> dict:
-    if label and label != "德约":
-        report["summary"] = (report.get("summary") or "").replace("德约", label)
+    if label and label != "喬科維奇":
+        report["summary"] = (report.get("summary") or "").replace("喬科維奇", label)
         for it in report.get("items") or []:
             if it.get("tip"):
-                it["tip"] = it["tip"].replace("德约", label)
+                it["tip"] = it["tip"].replace("喬科維奇", label)
     if note:
         report["summary"] = note + (report.get("summary") or "")
     return report
@@ -207,6 +207,7 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
                                loading_frames=res.get("loading_frames"))
     _apply_ref_language(report, meta["label"], meta["note"])
     ref = refdoc["reference"]
+    ref_name = meta["label"].split("・")[0]
     chart = shadow.render_kinetic_chart(
         res["signals"], res["metrics"]["contact_t"], ref.get("ideal_curve"),
         user_loading_s=res.get("loading_s", 0.0))
@@ -215,7 +216,8 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
     seq_chart = shadow.render_power_transfer(
         res["signals"], res["metrics"]["contact_t"], res.get("loading_s", 1.0),
         ref.get("ideal_curve"),
-        locked=res.get("loading_frames", 99) < diagnose.TIMING_MIN_LOADING)
+        locked=res.get("loading_frames", 99) < diagnose.TIMING_MIN_LOADING,
+        ref_name=ref_name)
 
     contact_idx, contact_pose = _nearest_pose(landmarks["frames"], res["contact"])
     user_contact = None
@@ -224,7 +226,7 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
         user_contact = shadow.draw_skeleton_on_frame(frame, contact_pose)
 
     mirror_user = res.get("facing", 1.0) != meta["facing"]
-    # 3D 视角归一化: 取用户/德约 contact 帧的 world 坐标, 还原同一侧视
+    # 3D 视角归一化: 取用户/喬科維奇 contact 帧的 world 坐标, 还原同一侧视
     uw = res["world"][contact_idx].tolist() if 0 <= contact_idx < len(res["world"]) else None
     overlay = None
     if contact_pose and ref.get("contact_pose_img"):
@@ -250,11 +252,11 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
     seq_warn = ""
     if fwd_frames < 6:
         if int(res.get("swing_start", 0)) < 5:
-            seq_warn = ("⚠️ 你的视频可能从挥拍中途开始(没拍到向后引拍),发力顺序/相位分析可能不准。"
-                        "建议：从持拍准备-向后引拍开始,拍完整动作到收拍结束。")
+            seq_warn = ("⚠️ 你的影片可能從揮拍中途才開始（沒有拍到向後引拍），因此發力順序／階段分析可能不準確。"
+                        "建議從持拍準備、向後引拍開始拍攝，完整記錄整個動作直到收拍結束。")
         else:
-            seq_warn = ("⚠️ 前挥段采样帧数太少,发力顺序的精细先后不可信。"
-                        "建议：用慢动作(120/240fps)拍摄以提升时序精度。")
+            seq_warn = ("⚠️ 前揮階段取樣的影格太少，無法可靠判斷發力順序的細微先後。"
+                        "建議使用慢動作（120/240 fps）拍攝，以提高時序分析的精準度。")
 
     return {
         "ok": True, "hand": res["signals"]["hand"],
@@ -352,7 +354,7 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto"),
                   reference: str = Form("djokovic")):
     data = await video.read()
     if not data:
-        raise HTTPException(400, "空文件")
+        raise HTTPException(400, "空檔")
     if len(data) > MAX_UPLOAD:
         raise HTTPException(413, f"文件过大 (上限 {MAX_UPLOAD // 1024 // 1024}MB)")
     hand = hand if hand in ("L", "R") else "auto"   # 用户指定惯用手, 否则自动判定
@@ -380,7 +382,7 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto"),
     n = len(frames)
     if n < 10:                                      # 帧太少 → 无法构成一次挥拍 (也防下游空数组)
         os.unlink(path)
-        raise HTTPException(422, "视频太短或未能稳定提取到骨架, 请上传包含完整挥拍(引拍→收拍)的视频。")
+        raise HTTPException(422, "影片太短，或無法穩定擷取骨架。請上傳包含完整揮拍（引拍 → 收拍）的影片。")
     if n / fps > MAX_DURATION_S + 1.0:              # 后备: 部分容器读不到时长元数据
         os.unlink(path)
         raise HTTPException(413, f"视频时长约 {n / fps:.0f} 秒, 超过 {MAX_DURATION_S} 秒上限, 请裁剪后再传。")
@@ -447,7 +449,7 @@ async def recompute(token: str = Form(...), contact: int = Form(-1),
     contact<0 表示该片段内自动找击球; seg_lo/seg_hi 给定时只在该片段内分析。"""
     sess = SESSIONS.get(token)
     if not sess:
-        raise HTTPException(404, "会话已过期, 请重新上传分析")
+        raise HTTPException(404, "工作階段已逾期，請重新上傳影片並分析")
     SESSIONS.move_to_end(token)
     landmarks = sess["landmarks"]
     fps = float(landmarks.get("fps", 30.0))
@@ -470,7 +472,7 @@ async def frame(token: str = Form(...), idx: int = Form(...)):
     """按需取单帧缩略图(base64), 供片段起止滑杆拖动时逐帧精确预览(不必预载全视频缩略图)。"""
     sess = SESSIONS.get(token)
     if not sess:
-        raise HTTPException(404, "会话已过期, 请重新上传分析")
+        raise HTTPException(404, "工作階段已逾期，請重新上傳影片並分析")
     SESSIONS.move_to_end(token)
     n = len(sess["landmarks"]["frames"])
     i = max(0, min(n - 1, int(idx)))
@@ -488,7 +490,7 @@ app.include_router(_coach.router)
 def coach_page():
     p = os.path.join(FRONTEND, "coach.html")
     if not os.path.isfile(p):
-        raise HTTPException(404, "页面缺失")
+        raise HTTPException(404, "找不到此頁面")
     return FileResponse(p, media_type="text/html")
 
 

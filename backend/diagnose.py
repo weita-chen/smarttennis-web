@@ -9,39 +9,39 @@ from __future__ import annotations
 # direction: "higher"=越大越好(到中位即满分), "band"=越接近德约区间越好。
 METRIC_META = {
     "seq_lead": {
-        "label": "发力链顺序 (近端→远端)", "unit": "", "direction": "band",
-        "good": "下盘/躯干先发力, 再依次传到手臂, 动力链顺畅、与德约接近。",
-        "below": "近端领先不足(几乎同时发力) → 偏'用手臂打'。引拍后先转髋顶髋, 让手臂稍晚依次跟随甩出。",
-        "above": "近端领先偏多, 注意各环节衔接别脱节。",
+        "label": "發力鏈順序（由近端到遠端）", "unit": "", "direction": "band",
+        "good": "先由下半身與軀幹帶動，再依序將力量傳到手臂，動力鏈流暢，與職業球員的動作相近。",
+        "below": "近端帶動不足（各部位幾乎同時發力），容易變成「只用手臂打球」。引拍後先轉髖、帶動髖部，再讓手臂稍晚依序跟上並加速揮出。",
+        "above": "近端帶動過多，建議留意各環節之間的銜接，不讓動作脫節。",
     },
     "xfactor_magnitude": {
-        "label": "X-factor 装载幅度", "unit": "°", "direction": "band",
-        "good": "上下半身分离充分, 蓄力到位。",
-        "above": "肩髋分离偏大, 注意别过度扭转导致还原慢或腰部负担。",
-        "below": "上下半身分离不足, 蓄力偏小。引拍时多转肩、稳住下盘, 制造更大的肩髋夹角来储能。",
+        "label": "X-factor 身體蓄力幅度", "unit": "°", "direction": "band",
+        "good": "上下半身適度分離，蓄力到位。",
+        "above": "肩髖分離角度偏大，注意避免過度扭轉，以免回正速度變慢或增加腰部負擔。",
+        "below": "上下半身分離不足，蓄力幅度較小。引拍時可多轉肩、穩住下盤，增加肩髖夾角以累積力量。",
     },
     "contact_forward": {
-        "label": "击球点·前伸", "unit": "", "direction": "band",
-        "good": "击球点在身体前方的位置和德约接近, 能充分借上身体前送的力。",
-        "below": "击球点偏靠后(离身体太近) → 容易被球顶住、发不上力。让击球点更靠前, 早一点迎击。",
-        "above": "击球点过于靠前, 可能够不实、发力不稳, 注意触球时机。",
+        "label": "擊球點・前後位置", "unit": "", "direction": "band",
+        "good": "擊球點相對身體的位置與職業球員相近，能充分運用身體向前帶動的力量。",
+        "below": "擊球點偏後（離身體太近），容易被來球擠壓、難以順利發力。可嘗試讓擊球點更靠前，提早揮拍。",
+        "above": "擊球點太靠前，可能不容易扎實擊球、發力不穩，請留意觸球時機。",
     },
     "contact_height": {
-        "label": "击球点·高度", "unit": "", "direction": "band",
-        "good": "击球高度和德约接近, 处在舒适发力区间。",
-        "below": "击球点偏低 → 多在腰部以下, 注意降重心、早准备, 或选更高的击球点。",
-        "above": "击球点偏高, 注意是否被高球顶到、影响上旋与稳定。",
+        "label": "擊球點・高度", "unit": "", "direction": "band",
+        "good": "擊球高度與職業球員相近，位於較容易發力的區間。",
+        "below": "擊球點偏低，常出現在腰部以下；可留意降低重心、提早準備，或選擇較高的擊球點。",
+        "above": "擊球點偏高，請留意是否被高球影響揮拍舒適度、上旋與穩定性。",
     },
     "rot_pre_frac": {
-        "label": "击球前身体旋转完成度", "unit": "", "direction": "higher",
-        "good": "击球前髋肩已转到位, 触球时把旋转能量交给手臂(德约式)。",
-        "below": "身体旋转偏晚——大部分髋肩旋转发生在击球之后(转过了球)。"
-                 "练: 引拍后先转髋再转肩、在触球前完成转体, 触球时身体已正对来球方向、随即把力甩给手臂。",
+        "label": "擊球前的身體旋轉完成度", "unit": "", "direction": "higher",
+        "good": "擊球前髖部與肩膀已轉到位，觸球時將旋轉累積的力量傳給手臂。",
+        "below": "身體轉體偏晚——髖部與肩膀的大部分旋轉都發生在擊球之後（轉過頭了）。"
+                 "練習建議：引拍後先轉髖再轉肩、並在觸球前完成轉體；觸球時身體已朝向來球方向，接著將力量傳給手臂揮出。",
         "above": "",
     },
 }
 ORDER = ["seq_lead", "xfactor_magnitude", "contact_forward", "contact_height", "rot_pre_frac"]
-SEQ_LABELS = {"hip": "髋", "shoulder": "肩", "upper_arm": "上臂",
+SEQ_LABELS = {"hip": "髖部", "shoulder": "肩膀", "upper_arm": "上臂",
               "forearm": "前臂", "wrist": "手腕"}
 SEQ_ORDER = ["hip", "shoulder", "upper_arm", "forearm", "wrist"]
 
@@ -52,8 +52,8 @@ TIMING_MIN_LOADING = 10
 # rot_pre 也锁: 短装载下窗口相位失真, 连德约本人都只测出 0.14(正控回归实测)——
 # 它反映的是拍摄条件而非技术, 30fps 常速下如实只评击球点两项。
 TIMING_LOCKED = ("seq_lead", "xfactor_magnitude", "rot_pre_frac")
-LOCK_TIP = ("此指标需要足够的时间分辨率——你的前挥只有几帧, 精细时序物理上测不出来。"
-            "用手机慢动作模式(120/240fps)拍摄即可解锁。")
+LOCK_TIP = ("這項指標需要足夠的時間解析度；你的前揮只有幾格，無法在物理上可靠地量測精細時序。"
+            "使用手機慢動作模式（120/240 fps）拍攝即可解鎖。")
 
 
 def _acceptable(band: dict):
@@ -128,7 +128,7 @@ def diagnose(user_metrics: dict, reference: dict,
         if status == "in_band" or better_side:
             tip, ok = meta["good"], True
         elif status == "acceptable":
-            tip, ok = meta["good"] + "(在职业常见波动范围内, 离中位还有些距离)", True
+            tip, ok = meta["good"] + "（落在職業球員常見的波動範圍內）", True
         elif status == "above":
             tip, ok = meta["above"], False
         else:
@@ -144,13 +144,13 @@ def diagnose(user_metrics: dict, reference: dict,
 
     score = round(sum(subs) / max(sum(weights), 1e-6))
     if score >= 80:
-        summary = "动力链整体接近职业水准, 继续保持。"
+        summary = "整體動力鏈接近職業水準，請繼續保持。"
     elif score >= 60:
-        summary = "动力链基础不错, 有 1–2 个环节可重点打磨。"
+        summary = "動力鏈基礎不錯，有 1～2 個環節可以優先加強。"
     else:
-        summary = "发力链存在明显改进空间, 建议从下半身带动开始练。"
-    prefix = f"基于 {n_swings} 次挥拍综合评估。" if n_swings >= 2 else ""
-    suffix = (f"(本次可评 {len(subs)}/{len(ORDER)} 项, 时序类需慢动作视频解锁)"
+        summary = "動力結構還有明顯的改善空間，建議先從下半身帶動的練習開始。"
+    prefix = f"基於 {n_swings} 次揮拍的綜合評估。" if n_swings >= 2 else ""
+    suffix = (f"（這次可評 {len(subs)}/{len(ORDER)} 項，時序類需慢動作影片才能解鎖）"
               if locked_keys else "")
     summary = prefix + summary + suffix
 

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0b6b3a">
-<title>SmartTennis · 正手动力链分析</title>
+<title>WitnessTennis・網球姿勢分析</title>
 <style>
   :root{
     --green:#0b6b3a; --green-l:#13935a; --bg:#f5f7f6; --card:#fff;
@@ -109,62 +109,62 @@
 </head>
 <body>
 <header>
-  <h1>🎾 SmartTennis</h1>
-  <p>上传正手视频（≤30 秒，可含多次挥拍），对照德约或费德勒</p>
+  <h1>🎾 WitnessTennis</h1>
+  <p>上傳影片（≤30 秒，可包含多次揮拍），與喬科維奇或費德勒的動作比較</p>
 </header>
 
 <div class="wrap">
   <div class="card upload" id="uploadCard">
     <div class="steps">
-      <div class="step"><b>1</b>侧面拍摄</div>
-      <div class="step"><b>2</b>全身入镜</div>
-      <div class="step"><b>3</b>击球居中</div>
-      <div class="step"><b>4</b>慢动作模式</div>
+      <div class="step"><b>1</b>側面拍攝</div>
+      <div class="step"><b>2</b>全身入鏡</div>
+      <div class="step"><b>3</b>擊球點位於畫面中央</div>
+      <div class="step"><b>4</b>慢動作模式</div>
     </div>
     <div style="background:#e8f4ec;border:1px solid #bfe3cc;border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:13px;color:#1c5c38;text-align:left">
-      🎬 <b>强烈建议用手机「慢动作」模式拍摄(120/240fps)</b>——可解锁发力时序、蓄力幅度、转体时机的完整分析；普通视频只能评估击球点。iPhone：相机→慢动作；安卓：相机→更多→慢动作。
+      🎬 強烈建議使用手機的「慢動作」模式拍攝（120/240 fps），才能完整分析發力時序、蓄力幅度與轉體時機
     </div>
-    <div class="handlabel">对照基准</div>
+    <div class="handlabel">比較基準</div>
     <select id="refSel" style="width:100%;max-width:420px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-bottom:12px;background:#fff">
-      <option value="djokovic">德约 · 正手</option>
-      <option value="federer_normal">费德勒 · 正手（7 支暂用，可评分）</option>
-      <option value="federer_highball">费德勒 · 高球（只换影子）</option>
-      <option value="federer_lowball">费德勒 · 低球（只换影子）</option>
-      <option value="federer_approach_normal">费德勒 · 网前迎前（只换影子）</option>
-      <option value="federer_approach_high">费德勒 · 高位迎前（只换影子）</option>
-      <option value="federer_topspin">费德勒 · 上旋（只换影子）</option>
-      <option value="federer_running">费德勒 · 跑动（机位偏正，只换影子）</option>
+      <option value="djokovic">喬科維奇・正拍</option>
+      <option value="federer_normal">費德勒・正拍</option>
+      <option value="federer_highball">費德勒・高球（不評分，僅供動作比較）</option>
+      <option value="federer_lowball">費德勒・低球（不評分，僅供動作比較）</option>
+      <option value="federer_approach_normal">費德勒・攻擊球（不評分，僅供動作比較）</option>
+      <option value="federer_approach_high">費德勒・高位攻擊球（不評分，僅供動作比較）</option>
+      <option value="federer_topspin">費德勒・上旋球 Topspin（不評分，僅供動作影子比較）</option>
+      <option value="federer_running">費德勒・跑動中擊球（不評分，僅供動作比較）</option>
     </select>
     <div class="handlabel">你的持拍手</div>
     <div class="handsel" id="handsel">
-      <button data-h="auto" class="on">自动</button>
+      <button data-h="auto" class="on">自動判斷</button>
       <button data-h="R">右手</button>
       <button data-h="L">左手</button>
     </div>
     <input type="file" id="camInput" accept="video/*" capture="environment">
     <input type="file" id="fileInput" accept="video/*">
-    <button class="btn" id="camBtn">📹 现场拍摄</button>
-    <button class="btn secondary" id="pickBtn">🖼 从相册/文件选择视频</button>
+    <button class="btn" id="camBtn">📹 現場拍攝</button>
+    <button class="btn secondary" id="pickBtn">🖼 從相簿選取影片</button>
     <div id="fileName"></div>
-    <button class="btn" id="analyzeBtn" style="display:none">开始分析</button>
-    <div class="hint">建议：侧面机位、单人入镜。视频 ≤30 秒；可含多次挥拍，分析时再选要测的那一拍。</div>
+    <button class="btn" id="analyzeBtn" style="display:none">開始分析</button>
+    <div class="hint">建議從側面拍攝，畫面中只出現一位球員。影片長度 ≤30 秒，可包含多次揮拍；分析時再選擇要評估的那一拍。</div>
     <div class="err" id="err"></div>
   </div>
 
   <div class="card" id="historyCard" style="display:none">
-    <h3 style="margin:0 0 4px">历史记录</h3>
-    <div class="sub" style="margin-bottom:4px">本地保存的最近 3 次，点开继续看（逐帧对比可离线拖动）</div>
+    <h3 style="margin:0 0 4px">歷史紀錄</h3>
+    <div class="sub" style="margin-bottom:4px">最近 3 次分析會暫存（逐格比較可離線拖曳）</div>
     <div id="historyList"></div>
   </div>
 
   <div class="spinner" id="spinner">
     <div class="ring"></div>
-    <div>正在提取骨骼并分析动力链…<br><small style="color:var(--muted)">约需 10–30 秒</small></div>
+    <div>正在擷取骨架並分析動力結構…<br><small style="color:var(--muted)">約需 10–30 秒</small></div>
   </div>
 
   <div id="result">
     <div class="card" id="restoredNote" style="display:none;background:#eef7f0;border:1px solid var(--green)">
-      <div class="sub" style="margin:0">📁 已恢复上次分析（本地保存，刷新不丢）。<b>逐帧对比可直接拖动</b>；如需重新调整击球帧/片段，请「重新分析另一段」。</div>
+      <div class="sub" style="margin:0">📁 已還原上次分析。逐格比較可直接拖曳；若要重新調整擊球影格或片段，請選擇「重新分析另一段」。</div>
     </div>
     <div class="card">
       <div class="scorebar">
@@ -176,69 +176,69 @@
       <div class="sub" id="seqWarnText" style="margin:0;color:#8a5a00"></div>
     </div>
     <div class="card" id="segCard" style="display:none">
-      <h3>选择挥拍片段</h3>
+      <h3>選擇揮拍片段</h3>
       <div class="sub" id="segHint"></div>
       <div class="swingrow" id="swingList"></div>
       <details id="segManual" style="margin-top:6px">
-        <summary class="sub" style="cursor:pointer;color:var(--green);font-weight:600">▸ 手动调整起点(引拍)/终点(收拍)</summary>
-        <div class="segrow"><div class="seglab">起点·引拍</div><img id="segStartImg" class="segthumb" alt="起点"><input type="range" id="segStart" class="cslider"></div>
-        <div class="segrow"><div class="seglab">终点·收拍</div><img id="segEndImg" class="segthumb" alt="终点"><input type="range" id="segEnd" class="cslider"></div>
+        <summary class="sub" style="cursor:pointer;color:var(--green);font-weight:600">▸ 手動調整起點（引拍）／終點（收拍）</summary>
+        <div class="segrow"><div class="seglab">起點・引拍</div><img id="segStartImg" class="segthumb" alt="起點"><input type="range" id="segStart" class="cslider"></div>
+        <div class="segrow"><div class="seglab">終點・收拍</div><img id="segEndImg" class="segthumb" alt="終點"><input type="range" id="segEnd" class="cslider"></div>
         <div class="cstatus" id="segStatus"></div>
       </details>
     </div>
     <div class="card imgcard" id="contactCard">
-      <h3>击球瞬间</h3>
-      <div class="sub" id="contactSub">你与德约的击球定格，黄线为识别到的骨架。</div>
+      <h3>擊球瞬間</h3>
+      <div class="sub" id="contactSub">你與職業球員的擊球定格畫面，黃色線條為系統辨識出的骨架。</div>
       <div class="frames">
-        <figure><img id="userContactImg" alt="你的击球瞬间"><figcaption>你</figcaption></figure>
-        <figure id="refFigure"><img id="djokoContactImg" alt="基准击球瞬间"><figcaption id="contactCap">德约</figcaption></figure>
+        <figure><img id="userContactImg" alt="你的擊球瞬間"><figcaption>你</figcaption></figure>
+        <figure id="refFigure"><img id="djokoContactImg" alt="基準擊球瞬間"><figcaption id="contactCap">喬科維奇</figcaption></figure>
       </div>
       <div class="cadj" id="contactAdj">
-        <div class="sub">⚠️ 自动识别的击球帧未必精准。<b>拖动滑杆</b>选到球拍触球那一帧，整份分析会自动重算。</div>
+        <div class="sub">⚠️ 系統自動辨識的擊球影格不一定精準。請拖曳滑桿，選到球拍觸球的那一格，系統就會自動重新計算整份分析。</div>
         <input type="range" id="contactSlider" class="cslider">
         <div class="cstatus" id="cstatus"></div>
       </div>
     </div>
     <div class="card" id="seqCard">
-      <h3 style="margin:0 0 4px">转体时机：发力是否在击球前完成</h3>
-      <div class="sub">身体(髋+肩)的转动有多少发生在<b>击球之前</b>。职业先把身体转到位、再把力交给手臂；转体大多发生在击球之后 = "转过了球"。</div>
+      <h3 style="margin:0 0 4px">轉體時機：發力是否在擊球前完成</h3>
+      <div class="sub">身體（髖部＋肩膀）的轉動有多少是在擊球前完成。職業球員通常會先完成身體轉動，再將力量傳遞到手臂；如果大部分轉體都發生在擊球後，就代表「轉過頭了」。</div>
       <div id="rotBar" style="margin-top:10px"></div>
     </div>
     <div class="card imgcard">
       <details>
-        <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--green)">完整动力链速度曲线 · 进阶</summary>
-        <div class="sub" style="margin-top:8px">横轴=挥拍相位（0=击球，-1=前挥起点），DTW 对齐。实线=你，虚线=德约；看每色高峰从左到右先后。这是专业视角——日常看下方「逐帧同步对比」里的发力时间轴即可。</div>
-        <img id="chartImg" alt="动力链时序图" style="margin-top:6px">
+        <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--green)">完整動力鏈速度曲線・進階</summary>
+        <div class="sub" style="margin-top:8px">橫軸代表揮拍階段（0＝擊球，-1＝前揮起點），並以 DTW 進行對齊。實線＝你，虛線＝職業球員；觀察各色曲線的峰值從左到右出現的先後順序。這是進階分析；平常查看下方「逐格同步比較」的發力時間軸即可。</div>
+        <img id="chartImg" alt="動力鏈時序圖" style="margin-top:6px">
       </details>
     </div>
     <div class="card" id="scrubCard">
-      <h3>逐帧同步对比</h3>
-      <div class="sub" id="scrubSub">拖滑杆，你和基准按<b>同一挥拍相位</b>同步逐帧。</div>
+      <h3>和職業球員逐格比較</h3>
+      <div class="sub" id="scrubSub">拖移圓鈕，用來同步比較基準。</div>
       <div class="scrubRow">
         <div class="scrubCol"><img id="scrubUser" alt="你"><div class="cap">你</div></div>
-        <div class="scrubCol" id="scrubDjokoCol"><img id="scrubDjoko" alt="基准"><div class="cap" id="scrubCap">德约</div></div>
+        <div class="scrubCol" id="scrubDjokoCol"><img id="scrubDjoko" alt="基準"><div class="cap" id="scrubCap">喬科維奇</div></div>
       </div>
       <input type="range" id="scrubSlider" class="scrubSlider" min="0" max="20" value="13">
       <div class="scrubPhase" id="scrubPhase"></div>
-      <div class="sub" style="margin-top:10px;text-align:center"><b>发力传递曲线</b>：绿线=你此刻挥拍位置（随滑杆移动）</div>
-      <div class="seqwrap"><img id="scrubMini" alt="发力时间轴"><div class="seqline" id="seqLine2"></div></div>
-      <div class="sub" style="margin-top:8px"><b style="color:#2e7d32">绿=身体(髋+肩)</b>，<b style="color:#c0392b">红=手臂(腕)</b>；实线=你，虚线=德约。理想的发力传递：<b>绿峰在击球线之前出现并回落</b>（身体先转到位），<b>红峰紧随其后冲向击球点</b>（力交给手臂甩出）。若你的绿峰贴着或越过击球线 = 转体偏晚、"边打边转"。拖动滑杆，竖线扫过曲线，逐帧对照上方画面。</div>
+      <div class="sub" style="margin-top:10px;text-align:center"><b>發力傳遞曲線</b>：綠線代表你目前的揮拍位置（會隨滑桿移動）</div>
+      <div class="seqwrap"><img id="scrubMini" alt="發力時間軸"><div class="seqline" id="seqLine2"></div></div>
+      <div class="sub" style="margin-top:8px">綠線＝身體（髖部＋肩膀），紅線＝手臂（手腕）；實線＝你，虛線＝職業球員。理想的發力傳遞是：綠線峰值在擊球線之前出現並回落（身體先完成轉動），接著紅線峰值出現並朝擊球點加速（再由手臂帶出力量）。如果綠線峰值貼近或越過擊球線，可能表示轉體偏晚、變成「邊打邊轉」。可以拖移圓鈕觀察垂直線掃過曲線時，上方畫面中的動作變化。</div>
     </div>
     <div class="card imgcard" id="overlayCard">
-      <h3>影子对比（击球瞬间）</h3>
-      <div class="sub" id="overlaySub">蓝=你，橙=基准。已用 3D 还原到同一侧视后，再按身材归一化叠加。</div>
-      <img id="overlayImg" alt="影子骨架叠加">
+      <h3>動作影子比較（擊球瞬間）</h3>
+      <div class="sub" id="overlaySub">藍色＝你，橘色＝比較基準。已先以 3D 還原成相同側視角，再依身材比例調整後疊合。</div>
+      <img id="overlayImg" alt="影子骨架疊加">
     </div>
     <div class="card">
-      <h3 style="margin:0 0 4px">逐项诊断</h3>
-      <div class="sub" id="bandSub">绿带 = 所选基准的正常区间</div>
+      <h3 style="margin:0 0 4px">細節分析</h3>
+      <div class="sub" id="bandSub">綠色區帶＝所選比較基準的常見範圍</div>
       <div id="metrics"></div>
     </div>
     <button class="btn secondary" id="againBtn">重新分析另一段</button>
   </div>
 </div>
 
-<footer>SmartTennis MVP · 2D 骨骼动力链分析 · 仅供训练参考</footer>
+<footer>WitnessTennis MVP</footer>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -263,7 +263,7 @@ camBtn.onclick=()=>camInput.click();
 pickBtn.onclick=()=>fileInput.click();
 function onPick(input){
   chosen=input.files[0]||null;
-  if(chosen){fileName.textContent="已选择："+chosen.name;analyzeBtn.style.display="";err.style.display="none";}
+  if(chosen){fileName.textContent="已選取："+chosen.name;analyzeBtn.style.display="";err.style.display="none";}
 }
 camInput.onchange=()=>onPick(camInput);
 fileInput.onchange=()=>onPick(fileInput);
@@ -280,7 +280,7 @@ analyzeBtn.onclick=async()=>{
     const fd=new FormData();fd.append("video",chosen);fd.append("hand",handChoice);fd.append("reference",$("#refSel").value);
     const r=await fetch("/api/analyze",{method:"POST",body:fd});
     const data=await r.json();
-    if(!r.ok||!data.ok)throw new Error(data.detail||"分析失败，请重试");
+    if(!r.ok||!data.ok)throw new Error(data.detail||"分析失敗，請再試一次");
     render(data);
   }catch(e){
     spinner.classList.remove("on");uploadCard.style.display="";
@@ -339,7 +339,7 @@ function setupSegments(d){
       const f=document.createElement("div");
       f.className="swingcard"+(s.i===act.i?" on":"");
       f.dataset.i=s.i;
-      f.innerHTML=`<img src="${s.thumb||''}" alt="挥拍${s.i+1}"><div class="cap">挥拍 ${s.i+1}<br>${s.duration_s}s</div>`;
+      f.innerHTML=`<img src="${s.thumb||''}" alt="揮拍${s.i+1}"><div class="cap">揮拍 ${s.i+1}<br>${s.duration_s}s</div>`;
       f.onclick=()=>{
         // 立即高亮点击的这一拍(不等重算回来), 否则绿框会延迟到分析完成才移动
         document.querySelectorAll("#swingList .swingcard").forEach(el=>el.classList.toggle("on",(+el.dataset.i)===s.i));
@@ -347,10 +347,10 @@ function setupSegments(d){
       };
       swingList.appendChild(f);
     });
-    segHint.innerHTML=`检测到 <b>${sw.length}</b> 个挥拍。点选要分析的一个；或展开手动微调起止。`;
+    segHint.innerHTML=`偵測到 <b>${sw.length}</b> 次揮拍。請點選要分析的其中一次，或展開手動微調起點與終點。`;
     swingList.style.display="";
   }else{
-    segHint.innerHTML=`已自动定位挥拍区间。若起止不准，可展开手动调整起点/终点。`;
+    segHint.innerHTML=`已自動定位揮拍區間。若起點或終點不準確，可展開手動調整。`;
     swingList.style.display="none";
   }
   segShow();
@@ -366,7 +366,7 @@ function segShow(){
   const fps=(session&&session.fps)||30, a=+segStart.value, b=+segEnd.value;
   segStartImg.src=nearestStripSrc(a)||"";
   segEndImg.src=nearestStripSrc(b)||"";
-  segStatus.textContent=`片段：第 ${a}–${b} 帧（约 ${((b-a)/fps).toFixed(1)} 秒）`;
+  segStatus.textContent=`片段：第 ${a}–${b} 格（約 ${((b-a)/fps).toFixed(1)} 秒）`;
 }
 function segClamp(which){
   const maxF=((session&&session.nFrames)||1)-1, fps=(session&&session.fps)||30, gap=Math.max(1,Math.round(0.5*fps));
@@ -383,14 +383,14 @@ function highlightActiveSwing(contact){
 }
 function baseSegHint(){
   const n=((session&&session.swings)||[]).length;
-  return n>1 ? `检测到 <b>${n}</b> 个挥拍。点选要分析的一个；或展开手动微调起止。`
-             : `已自动定位挥拍区间。若起止不准，可展开手动调整起点/终点。`;
+  return n>1 ? `偵測到 <b>${n}</b> 次揮拍。請點選要分析的其中一次，或展開手動微調起點與終點。`
+             : `已自動定位揮拍區間。若起點或終點不準確，可展開手動調整。`;
 }
 async function applySegment(){
-  if(!session||!session.token){ segHint.innerHTML=`<span style="color:#c0392b">⚠️ 请先上传视频分析</span>`; return; }
+  if(!session||!session.token){ segHint.innerHTML=`<span style="color:#c0392b">⚠️ 請先上傳影片並完成分析</span>`; return; }
   const a=+segStart.value, b=+segEnd.value;
-  segStatus.textContent="重新分析该片段中…";
-  segHint.innerHTML="⏳ 正在重新分析所选挥拍…";     // 可见反馈(segStatus 在折叠区, 外面看不到)
+  segStatus.textContent="正在重新分析這個片段…";
+  segHint.innerHTML="⏳ 正在重新分析選取的揮拍…";     // 可见反馈(segStatus 在折叠区, 外面看不到)
   segCard.style.opacity=".55"; segCard.style.pointerEvents="none";
   try{
     const fd=new FormData();
@@ -398,13 +398,13 @@ async function applySegment(){
     fd.append("seg_lo",a); fd.append("seg_hi",b);
     fd.append("reference",$("#refSel").value);
     const r=await fetch("/api/recompute",{method:"POST",body:fd});
-    const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.detail||"分析失败，请重试");
+    const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.detail||"分析失敗，請再試一次");
     refreshAfterRecompute(d);
     segShow(); segHint.innerHTML=baseSegHint();
   }catch(e){
     segStatus.textContent="⚠️ "+e.message;
-    const expired=/过期|token|会话/.test(e.message);
-    segHint.innerHTML=`<span style="color:#c0392b">⚠️ ${expired?"会话已过期，请回到首页重新上传视频":e.message}</span>`;
+    const expired=/逾期|過期|token|工作階段|會話/.test(e.message);
+    segHint.innerHTML=`<span style="color:#c0392b">⚠️ ${expired?"工作階段已逾期，請回首頁重新上傳影片":e.message}</span>`;
   }finally{ segCard.style.opacity=""; segCard.style.pointerEvents=""; }
 }
 segStart.oninput=()=>{ segClamp("start"); scheduleExact("start"); };
@@ -412,7 +412,7 @@ segEnd.oninput=()=>{ segClamp("end"); scheduleExact("end"); };
 segStart.onchange=applySegment;
 segEnd.onchange=applySegment;
 
-// 拖动时先用胶片条(0.4s粒度)秒回, 停顿~150ms 再向后端取该帧的精确缩略图覆盖, 做到逐帧精确预览
+// 拖动时先用胶片条(0.4s粒度)秒回, 停顿~150ms 再向后端取该格的精确缩略图覆盖, 做到逐格精确预览
 let _exactTimer=null;
 function scheduleExact(which){ clearTimeout(_exactTimer); _exactTimer=setTimeout(()=>exactFrame(which), 150); }
 async function exactFrame(which){
@@ -430,7 +430,7 @@ async function exactFrame(which){
 contactSlider.oninput=()=>{
   const f=contactSlider.value;
   if(session&&session.thumbs[f]) $("#userContactImg").src=session.thumbs[f];
-  cstatus.textContent="第 "+f+" 帧（松开滑杆后重新分析）";
+  cstatus.textContent="第 "+f+" 格（放開滑桿後會重新分析）";
 };
 contactSlider.onchange=async()=>{
   if(!session||!session.token)return;
@@ -442,33 +442,33 @@ contactSlider.onchange=async()=>{
     if(segCard.style.display!=="none"){ fd.append("seg_lo",segStart.value); fd.append("seg_hi",segEnd.value); }
     const r=await fetch("/api/recompute",{method:"POST",body:fd});
     const d=await r.json();
-    if(!r.ok||!d.ok)throw new Error(d.detail||"重算失败，请重试");
+    if(!r.ok||!d.ok)throw new Error(d.detail||"重新計算失敗，請再試一次");
     paint(d); highlightActiveSwing(d.contact);
   }catch(e){cstatus.textContent="⚠️ "+e.message;}
   finally{contactAdj.classList.remove("busy");}
 };
 
 function paint(d){
-  const refName=d.ref_label||"德约";
+  const refName=d.ref_label||"喬科維奇";
   $("#score").innerHTML=d.report.score+'<small>/100</small>';
   $("#summary").textContent=d.report.summary;
   if(d.seq_warn){$("#seqWarnText").textContent=d.seq_warn; $("#seqWarn").style.display="";}
   else $("#seqWarn").style.display="none";
-  $("#contactSub").textContent="你与"+refName+"的击球定格，黄线为识别到的骨架。";
+  $("#contactSub").textContent="你與"+refName+"的擊球定格畫面，黃色線條為系統辨識出的骨架。";
   $("#contactCap").textContent=refName;
-  $("#bandSub").textContent="绿带 = "+refName+"正手的正常区间"+(d.ref_key&&d.ref_key!=="federer_normal"&&d.ref_key!=="djokovic"?"（特殊球种的评分仍用费德勒一般正手）":"");
-  $("#overlaySub").textContent="蓝=你，橙="+refName+"。已用 3D 还原到同一侧视后，再按身材归一化叠加。";
+  $("#bandSub").textContent="綠色區帶＝ "+refName+"正拍的常見範圍"+(d.ref_key&&d.ref_key!=="federer_normal"&&d.ref_key!=="djokovic"?"（特殊球種仍以一般正拍作為評分基準）":"");
+  $("#overlaySub").textContent="藍色＝你，橘色＝"+refName+"。已先以 3D 還原成相同側視角，再依身材比例調整後疊合。";
   if(d.user_contact){$("#userContactImg").src=d.user_contact;
     if(d.djokovic_contact){$("#djokoContactImg").src=d.djokovic_contact; $("#refFigure").style.display="";}
     else $("#refFigure").style.display="none";
     $("#contactCard").style.display="";}
   else $("#contactCard").style.display="none";
-  cstatus.textContent="当前击球帧：第 "+d.contact+" 帧";
+  cstatus.textContent="目前擊球影格：第 "+d.contact+" 格";
   $("#chartImg").src=d.kinetic_chart;
   if(d.shadow_overlay){$("#overlayImg").src=d.shadow_overlay;$("#overlayCard").style.display="";}
   else $("#overlayCard").style.display="none";
 
-  // 同步逐帧 scrubber
+  // 同步逐格 scrubber
   const su=d.scrub_user||[], sd=d.scrub_djoko||[], sp=d.scrub_phases||[], ax=d.seq_axis;
   const scrubCard=$("#scrubCard"), slr=$("#scrubSlider"), seqLine2=$("#seqLine2");
   if(su.length){
@@ -477,9 +477,9 @@ function paint(d){
     $("#scrubDjokoCol").style.display=sd.length?"":"none";
     $("#scrubSub").innerHTML = sd.length
       ? (d.ref_key==="federer_normal"
-          ? `拖滑杆，你和${refName}按<b>同一挥拍相位</b>同步逐帧。基准原片是 frame 165。`
-          : `拖滑杆，你和${refName}按<b>同一挥拍相位</b>同步逐帧。`)
-      : `这个基准还没有逐帧原片，下面只保留你的画面和发力曲线。`;
+          ? `拖移圓鈕，讓你和${refName}在<b>相同揮拍階段</b>逐格同步。比較基準的原始影片是第 165 格。`
+          : `拖移圓鈕，讓你和${refName}在<b>相同揮拍階段</b>逐格同步。`)
+      : `這個比較基準沒有逐格原始影片，因此下方只會顯示你的畫面與發力曲線。`;
     if(d.sequence_chart)$("#scrubMini").src=d.sequence_chart;   // 滑杆正下方的小时间轴(同屏可见)
     slr.max=su.length-1;
     let ci=0,best=9; sp.forEach((v,i)=>{if(Math.abs(v)<best){best=Math.abs(v);ci=i;}});
@@ -488,8 +488,8 @@ function paint(d){
       if(su[i])$("#scrubUser").src=su[i];
       if(sd[i])$("#scrubDjoko").src=sd[i];
       const ph=sp[i]!=null?sp[i]:0;
-      $("#scrubPhase").textContent=Math.abs(ph)<0.04?"⚡ 击球瞬间"
-        :(ph<0?`引拍/前挥中（击球前 ${Math.abs(ph).toFixed(2)}）`:`随挥（击球后 ${ph.toFixed(2)}）`);
+      $("#scrubPhase").textContent=Math.abs(ph)<0.04?"⚡ 擊球瞬間"
+        :(ph<0?`引拍／前揮中（擊球前 ${Math.abs(ph).toFixed(2)}）`:`隨揮中（擊球後 ${ph.toFixed(2)}）`);
       // 同步竖线: 当前相位→像素x, 画在滑杆正下方的发力时间轴上(同屏可见)
       if(ax){const left=(ax.left+(ph-ax.xmin)/(ax.xmax-ax.xmin)*(ax.right-ax.left))*100;
         seqLine2.style.left=left.toFixed(1)+"%"; seqLine2.style.opacity=1;}
@@ -504,12 +504,12 @@ function paint(d){
       <div style="width:44px;font-weight:700">${name}</div>
       <div style="flex:1;display:flex;height:26px;border-radius:8px;overflow:hidden;font-size:12px;color:#fff;font-weight:700">
         <div style="width:${pre}%;background:#2e7d32;display:flex;align-items:center;justify-content:center;min-width:34px">前 ${pre}%</div>
-        <div style="width:${post}%;background:#c9a13b;display:flex;align-items:center;justify-content:center;min-width:34px">后 ${post}%</div>
+        <div style="width:${post}%;background:#c9a13b;display:flex;align-items:center;justify-content:center;min-width:34px">後 ${post}%</div>
       </div></div>`;};
   if(rotIt){
     if(rotIt.locked){
       rotBar.innerHTML=mkbar(refName,rotIt.median,true)+
-        `<div class="sub" style="margin-top:10px">🔒 你的转体时机需<b>慢动作视频</b>解锁——当前帧率下该数值受采样影响不可靠。用手机慢动作模式(120/240fps)拍摄即可。</div>`;
+        `<div class="sub" style="margin-top:10px">🔒 轉體時機分析需使用<b>慢動作影片</b>才能解鎖——目前的影格率會讓這項數值受到取樣影響，可靠度不足。請使用手機慢動作模式（120/240 fps）拍攝。</div>`;
     }else{
       rotBar.innerHTML=mkbar("你",rotIt.value,false)+mkbar(refName,rotIt.median,false);
     }
@@ -519,7 +519,7 @@ function paint(d){
     let note=sc.querySelector(".seqnote");
     if(!note){note=document.createElement("div");note.className="seqnote";sc.appendChild(note);}
     // 不下"紊乱"硬判决: 25-30fps 下精细顺序不可靠, 只如实呈现, 由你自己对照
-    note.innerHTML="说明：手臂三段（上臂/前臂/手腕）峰值常相差不到一帧，普通手机帧率下难以精确分辨先后——所以这里只如实展示测到的时刻，<b>用慢动作(120/240fps)拍摄可显著提升精度</b>。";
+    note.innerHTML="說明：手臂三個部位（上臂／前臂／手腕）的速度峰值可能只差不到一格，一般手機影格率難以精確分辨先後。因此這裡只呈現實際量測到的時間；使用慢動作（120/240 fps）拍攝可大幅提升精準度。";
   } else sc.style.display="none";
 
   const box=$("#metrics");box.innerHTML="";
@@ -535,13 +535,13 @@ function paint(d){
         <div class="top">
           <span class="name">${it.label}</span>
           ${it.locked
-            ? `<span class="badge" style="background:#eef1f0;color:#7d8783">🔒 慢动作解锁</span>`
+            ? `<span class="badge" style="background:#eef1f0;color:#7d8783">🔒 慢動作解鎖</span>`
             : (()=>{const sc=Math.round(it.score);
-                const st={in_band:'理想区',acceptable:'合格',above:'偏高',below:'偏低'}[it.status]||'';
+                const st={in_band:'理想範圍',acceptable:'可接受',above:'偏高',below:'偏低'}[it.status]||'';
                 const c=sc>=80?['#e6f4ea','#1a7f43']:sc>=60?['#fdf3e3','#b97a1a']:['#fdeaea','#c0392b'];
                 return `<span class="badge" style="background:${c[0]};color:${c[1]}">${sc}分 · ${st}</span>`})()}
         </div>
-        <div class="val">你 ${it.value}${unit} <span style="color:var(--muted);font-weight:500">· ${refName} ${it.band_lo}~${it.band_hi}${unit}</span></div>
+        <div class="val">你 ${it.value}${unit} <span style="color:var(--muted);font-weight:500">· ${refName} ${it.band_lo}～${it.band_hi}${unit}</span></div>
         <div class="track">
           <div class="band" style="left:${bl}%;width:${bw}%"></div>
           <div class="marker" style="left:${mk}%"></div>
@@ -552,7 +552,7 @@ function paint(d){
   lastResult=d; if(!_restoring) schedulePersist();   // 每次显示结果 → 写入本地历史(防刷新丢失)
 }
 
-// ── 本地历史: 最近 3 次分析存进 IndexedDB, 首页卡片点开可继续看(逐帧对比离线可拖) ──
+// ── 本地历史: 最近 3 次分析存进 IndexedDB, 首页卡片点开可继续看(逐格对比离线可拖) ──
 function _idbOpen(){
   return new Promise((res,rej)=>{
     const r=indexedDB.open("smarttennis",1);
@@ -571,17 +571,17 @@ async function persistCurrent(){
   if(!lastResult || !lastResult.token) return;
   const d=lastResult;
   const entry={ id:d.token, savedAt:Date.now(),
-    score:(d.report&&d.report.score!=null)?d.report.score:null, contact:d.contact, label:"正手",
+    score:(d.report&&d.report.score!=null)?d.report.score:null, contact:d.contact, label:"正拍",
     thumb:d.user_contact||d.djokovic_contact||null, d:_slim(d),
     djoko_b64:_djokoB64||null, djoko_contact_b64:_djokoContactB64||null };
-  try{                                               // 关键: 立刻写库, 不等德约图抓取(手机抓图慢/被挡也不丢历史)
+  try{                                               // 关键: 立刻写库, 不等喬科維奇图抓取(手机抓图慢/被挡也不丢历史)
     let hist=(await _idbGet("history"))||[]; if(!Array.isArray(hist)) hist=[];
     const i=hist.findIndex(e=>e&&e.id===entry.id);
     if(i>=0){ entry.djoko_b64=hist[i].djoko_b64||entry.djoko_b64; entry.djoko_contact_b64=hist[i].djoko_contact_b64||entry.djoko_contact_b64; hist[i]=entry; }
     else hist.unshift(entry);
     await _idbSet("history", hist.slice(0,3));
   }catch(e){ return; }                               // 隐私模式/配额满 → 忽略, 不影响主流程
-  upgradeDjoko(entry.id);                             // 再异步把德约21帧升级成base64(离线拖动用, 尽力而为)
+  upgradeDjoko(entry.id);                             // 再异步把喬科維奇21格升级成base64(离线拖动用, 尽力而为)
 }
 async function upgradeDjoko(id){
   try{
@@ -600,9 +600,9 @@ async function upgradeDjoko(id){
 function _ago(ts){
   if(!ts) return "";
   const s=Math.max(0,(Date.now()-ts)/1000);
-  if(s<60) return "刚刚";
-  if(s<3600) return Math.floor(s/60)+" 分钟前";
-  if(s<86400) return Math.floor(s/3600)+" 小时前";
+  if(s<60) return "剛剛";
+  if(s<3600) return Math.floor(s/60)+" 分鐘前";
+  if(s<86400) return Math.floor(s/3600)+" 小時前";
   return Math.floor(s/86400)+" 天前";
 }
 async function renderHistory(){
@@ -612,9 +612,9 @@ async function renderHistory(){
   wrap.innerHTML="";
   hist.forEach(e=>{
     const div=document.createElement("div"); div.className="histcard";
-    div.innerHTML=`<img src="${e.thumb||''}" alt="历史"><div class="histmeta">`+
+    div.innerHTML=`<img src="${e.thumb||''}" alt="歷史紀錄"><div class="histmeta">`+
       `<div class="hs">${e.score!=null?e.score+'<small>/100</small>':'—'}</div>`+
-      `<div class="ht">${e.label||''} · 击球第${e.contact}帧 · ${_ago(e.savedAt)}</div></div><div class="harrow">›</div>`;
+      `<div class="ht">${e.label||''} · 擊球第 ${e.contact} 格 · ${_ago(e.savedAt)}</div></div><div class="harrow">›</div>`;
     div.onclick=()=>openHistory(e.id);
     wrap.appendChild(div);
   });

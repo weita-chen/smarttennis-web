@@ -110,7 +110,7 @@
 <body>
 <header>
   <h1>🎾 SmartTennis</h1>
-  <p>上传正手视频（≤30 秒，可含多次挥拍），对照德约动力链</p>
+  <p>上传正手视频（≤30 秒，可含多次挥拍），对照德约或费德勒</p>
 </header>
 
 <div class="wrap">
@@ -124,6 +124,17 @@
     <div style="background:#e8f4ec;border:1px solid #bfe3cc;border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:13px;color:#1c5c38;text-align:left">
       🎬 <b>强烈建议用手机「慢动作」模式拍摄(120/240fps)</b>——可解锁发力时序、蓄力幅度、转体时机的完整分析；普通视频只能评估击球点。iPhone：相机→慢动作；安卓：相机→更多→慢动作。
     </div>
+    <div class="handlabel">对照基准</div>
+    <select id="refSel" style="width:100%;max-width:420px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-bottom:12px;background:#fff">
+      <option value="djokovic">德约 · 正手</option>
+      <option value="federer_normal">费德勒 · 正手（7 支暂用，可评分）</option>
+      <option value="federer_highball">费德勒 · 高球（只换影子）</option>
+      <option value="federer_lowball">费德勒 · 低球（只换影子）</option>
+      <option value="federer_approach_normal">费德勒 · 网前迎前（只换影子）</option>
+      <option value="federer_approach_high">费德勒 · 高位迎前（只换影子）</option>
+      <option value="federer_topspin">费德勒 · 上旋（只换影子）</option>
+      <option value="federer_running">费德勒 · 跑动（机位偏正，只换影子）</option>
+    </select>
     <div class="handlabel">你的持拍手</div>
     <div class="handsel" id="handsel">
       <button data-h="auto" class="on">自动</button>
@@ -177,10 +188,10 @@
     </div>
     <div class="card imgcard" id="contactCard">
       <h3>击球瞬间</h3>
-      <div class="sub">你与德约的击球定格，黄线为识别到的骨架。</div>
+      <div class="sub" id="contactSub">你与德约的击球定格，黄线为识别到的骨架。</div>
       <div class="frames">
         <figure><img id="userContactImg" alt="你的击球瞬间"><figcaption>你</figcaption></figure>
-        <figure><img id="djokoContactImg" alt="德约击球瞬间"><figcaption>德约</figcaption></figure>
+        <figure id="refFigure"><img id="djokoContactImg" alt="基准击球瞬间"><figcaption id="contactCap">德约</figcaption></figure>
       </div>
       <div class="cadj" id="contactAdj">
         <div class="sub">⚠️ 自动识别的击球帧未必精准。<b>拖动滑杆</b>选到球拍触球那一帧，整份分析会自动重算。</div>
@@ -202,10 +213,10 @@
     </div>
     <div class="card" id="scrubCard">
       <h3>逐帧同步对比</h3>
-      <div class="sub">拖滑杆，你和德约按<b>同一挥拍相位</b>同步逐帧——引拍↔引拍、击球↔击球已对齐。亲眼看两人每个阶段的差别。</div>
+      <div class="sub" id="scrubSub">拖滑杆，你和基准按<b>同一挥拍相位</b>同步逐帧。费德勒没有逐帧原片，选他时只保留你的画面和发力曲线。</div>
       <div class="scrubRow">
         <div class="scrubCol"><img id="scrubUser" alt="你"><div class="cap">你</div></div>
-        <div class="scrubCol"><img id="scrubDjoko" alt="德约"><div class="cap">德约</div></div>
+        <div class="scrubCol" id="scrubDjokoCol"><img id="scrubDjoko" alt="基准"><div class="cap" id="scrubCap">德约</div></div>
       </div>
       <input type="range" id="scrubSlider" class="scrubSlider" min="0" max="20" value="13">
       <div class="scrubPhase" id="scrubPhase"></div>
@@ -215,12 +226,12 @@
     </div>
     <div class="card imgcard" id="overlayCard">
       <h3>影子对比（击球瞬间）</h3>
-      <div class="sub">蓝=你，橙=德约。已用 <b>3D 还原到同一侧视相机</b>（消除拍摄角度差），再按身材归一化叠加——所以看到的差异是<b>真实动作差异</b>，不是机位造成的。</div>
+      <div class="sub" id="overlaySub">蓝=你，橙=基准。已用 3D 还原到同一侧视后，再按身材归一化叠加。</div>
       <img id="overlayImg" alt="影子骨架叠加">
     </div>
     <div class="card">
       <h3 style="margin:0 0 4px">逐项诊断</h3>
-      <div class="sub">绿带 = 德约正手的正常区间</div>
+      <div class="sub" id="bandSub">绿带 = 所选基准的正常区间</div>
       <div id="metrics"></div>
     </div>
     <button class="btn secondary" id="againBtn">重新分析另一段</button>
@@ -266,7 +277,7 @@ analyzeBtn.onclick=async()=>{
   if(!chosen)return;
   err.style.display="none";uploadCard.style.display="none";$("#historyCard").style.display="none";spinner.classList.add("on");
   try{
-    const fd=new FormData();fd.append("video",chosen);fd.append("hand",handChoice);
+    const fd=new FormData();fd.append("video",chosen);fd.append("hand",handChoice);fd.append("reference",$("#refSel").value);
     const r=await fetch("/api/analyze",{method:"POST",body:fd});
     const data=await r.json();
     if(!r.ok||!data.ok)throw new Error(data.detail||"分析失败，请重试");
@@ -385,6 +396,7 @@ async function applySegment(){
     const fd=new FormData();
     fd.append("token",session.token); fd.append("contact",-1);
     fd.append("seg_lo",a); fd.append("seg_hi",b);
+    fd.append("reference",$("#refSel").value);
     const r=await fetch("/api/recompute",{method:"POST",body:fd});
     const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.detail||"分析失败，请重试");
     refreshAfterRecompute(d);
@@ -426,6 +438,7 @@ contactSlider.onchange=async()=>{
   contactAdj.classList.add("busy"); cstatus.textContent="重新分析中…";
   try{
     const fd=new FormData();fd.append("token",session.token);fd.append("contact",f);
+    fd.append("reference",$("#refSel").value);
     if(segCard.style.display!=="none"){ fd.append("seg_lo",segStart.value); fd.append("seg_hi",segEnd.value); }
     const r=await fetch("/api/recompute",{method:"POST",body:fd});
     const d=await r.json();
@@ -436,12 +449,18 @@ contactSlider.onchange=async()=>{
 };
 
 function paint(d){
+  const refName=d.ref_label||"德约";
   $("#score").innerHTML=d.report.score+'<small>/100</small>';
   $("#summary").textContent=d.report.summary;
   if(d.seq_warn){$("#seqWarnText").textContent=d.seq_warn; $("#seqWarn").style.display="";}
   else $("#seqWarn").style.display="none";
+  $("#contactSub").textContent="你与"+refName+"的击球定格，黄线为识别到的骨架。";
+  $("#contactCap").textContent=refName;
+  $("#bandSub").textContent="绿带 = "+refName+"正手的正常区间"+(d.ref_key&&d.ref_key!=="federer_normal"&&d.ref_key!=="djokovic"?"（特殊球种的评分仍用费德勒一般正手）":"");
+  $("#overlaySub").textContent="蓝=你，橙="+refName+"。已用 3D 还原到同一侧视后，再按身材归一化叠加。";
   if(d.user_contact){$("#userContactImg").src=d.user_contact;
-    $("#djokoContactImg").src=d.djokovic_contact||"/assets/djokovic_contact.jpg";
+    if(d.djokovic_contact){$("#djokoContactImg").src=d.djokovic_contact; $("#refFigure").style.display="";}
+    else $("#refFigure").style.display="none";
     $("#contactCard").style.display="";}
   else $("#contactCard").style.display="none";
   cstatus.textContent="当前击球帧：第 "+d.contact+" 帧";
@@ -452,8 +471,10 @@ function paint(d){
   // 同步逐帧 scrubber
   const su=d.scrub_user||[], sd=d.scrub_djoko||[], sp=d.scrub_phases||[], ax=d.seq_axis;
   const scrubCard=$("#scrubCard"), slr=$("#scrubSlider"), seqLine2=$("#seqLine2");
-  if(su.length && sd.length){
+  if(su.length){
     scrubCard.style.display="";
+    $("#scrubCap").textContent=refName;
+    $("#scrubDjokoCol").style.display=sd.length?"":"none";
     if(d.sequence_chart)$("#scrubMini").src=d.sequence_chart;   // 滑杆正下方的小时间轴(同屏可见)
     slr.max=su.length-1;
     let ci=0,best=9; sp.forEach((v,i)=>{if(Math.abs(v)<best){best=Math.abs(v);ci=i;}});
@@ -482,10 +503,10 @@ function paint(d){
       </div></div>`;};
   if(rotIt){
     if(rotIt.locked){
-      rotBar.innerHTML=mkbar("德约",rotIt.median,true)+
+      rotBar.innerHTML=mkbar(refName,rotIt.median,true)+
         `<div class="sub" style="margin-top:10px">🔒 你的转体时机需<b>慢动作视频</b>解锁——当前帧率下该数值受采样影响不可靠。用手机慢动作模式(120/240fps)拍摄即可。</div>`;
     }else{
-      rotBar.innerHTML=mkbar("你",rotIt.value,false)+mkbar("德约",rotIt.median,false);
+      rotBar.innerHTML=mkbar("你",rotIt.value,false)+mkbar(refName,rotIt.median,false);
     }
   }
   const seq=[];
@@ -515,7 +536,7 @@ function paint(d){
                 const c=sc>=80?['#e6f4ea','#1a7f43']:sc>=60?['#fdf3e3','#b97a1a']:['#fdeaea','#c0392b'];
                 return `<span class="badge" style="background:${c[0]};color:${c[1]}">${sc}分 · ${st}</span>`})()}
         </div>
-        <div class="val">你 ${it.value}${unit} <span style="color:var(--muted);font-weight:500">· 德约 ${it.band_lo}~${it.band_hi}${unit}</span></div>
+        <div class="val">你 ${it.value}${unit} <span style="color:var(--muted);font-weight:500">· ${refName} ${it.band_lo}~${it.band_hi}${unit}</span></div>
         <div class="track">
           <div class="band" style="left:${bl}%;width:${bw}%"></div>
           <div class="marker" style="left:${mk}%"></div>

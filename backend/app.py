@@ -24,13 +24,77 @@ import shadow
 BASE = os.path.dirname(__file__)
 FRONTEND = os.path.abspath(os.path.join(BASE, "..", "frontend"))
 REFERENCE_PATH = os.path.join(BASE, "reference", "djokovic_forehand.json")
+REF_DIR = os.path.join(BASE, "reference")
 MAX_UPLOAD = int(os.environ.get("MAX_UPLOAD_MB", "60")) * 1024 * 1024
 MAX_DURATION_S = int(os.environ.get("MAX_DURATION_S", "30"))   # 上传视频时长上限(秒)
+
+VARIANT_ZH = {
+    "normal": "正手",
+    "highball": "高球",
+    "lowball": "低球",
+    "approach_normal": "网前迎前",
+    "approach_high": "高位迎前",
+    "topspin": "上旋",
+    "running": "跑动",
+}
 
 app = FastAPI(title="SmartTennis MVP")
 
 with open(REFERENCE_PATH, encoding="utf-8") as fh:
     REFERENCE = json.load(fh)
+
+
+def _facing_of(ref: dict) -> float:
+    cp = (ref.get("reference") or {}).get("contact_pose_img")
+    return kc.detect_facing([{"img": cp}]) if cp else 1.0
+
+
+def _load_catalog() -> dict:
+    """德约保持原基准。费德勒一般正手用 7 支暂用绿带；其余变体只换影子与曲线，
+    评分仍借用费德勒一般正手（单支样本不能当尺子）。"""
+    catalog = {
+        "djokovic": {
+            "doc": REFERENCE, "label": "德约", "scrub": True,
+            "note": "", "facing": _facing_of(REFERENCE),
+        }
+    }
+    normal_path = os.path.join(REF_DIR, "federer_forehand_normal.json")
+    if not os.path.isfile(normal_path):
+        return catalog
+    with open(normal_path, encoding="utf-8") as fh:
+        normal = json.load(fh)
+    normal_band = normal.get("metrics_band")
+    files = ["federer_forehand_normal.json"] + sorted(
+        fn for fn in os.listdir(REF_DIR)
+        if fn.startswith("federer_forehand_") and fn.endswith(".json")
+        and fn != "federer_forehand_normal.json")
+    for fn in files:
+        with open(os.path.join(REF_DIR, fn), encoding="utf-8") as fh:
+            doc = json.load(fh)
+        if doc.get("reference_usable") is False or not doc.get("reference"):
+            continue
+        variant = doc.get("variant") or "normal"
+        key = "federer_" + variant
+        borrowed = not doc.get("metrics_band")
+        if borrowed:
+            if not normal_band:
+                continue
+            doc = dict(doc)
+            doc["metrics_band"] = normal_band
+        label = "费德勒" if variant == "normal" else "费德勒·" + VARIANT_ZH.get(variant, variant)
+        if variant == "normal":
+            note = "费德勒正手基准来自 7 支侧面挥拍，样本仍少，绿带是暂用的。"
+        elif borrowed:
+            note = f"影子和动力链曲线用{label}。评分仍对照费德勒一般正手（这支特殊球只有 1 条，不能单独当尺子）。"
+        else:
+            note = ""
+        if variant == "running":
+            note += "这支机位偏正，影子只供参考。"
+        catalog[key] = {
+            "doc": doc, "label": label, "scrub": False, "note": note,
+            "facing": _facing_of(doc),
+        }
+    return catalog
 
 
 @app.on_event("startup")
@@ -68,10 +132,7 @@ def _inject_rot_pre_band(ref: dict) -> None:
 
 
 _inject_rot_pre_band(REFERENCE)
-
-# 德约参考的面朝方向 (用于跨机位镜像对齐)
-_ref_cp = REFERENCE["reference"].get("contact_pose_img")
-REF_FACING = kc.detect_facing([{"img": _ref_cp}]) if _ref_cp else 1.0
+CATALOG = _load_catalog()
 
 
 def _asset_ver() -> str:
@@ -113,13 +174,32 @@ def _store_session(token: str, landmarks: dict, video_path: str, hand: str) -> N
             pass
 
 
+def _ref_meta(ref_key: str) -> dict:
+    return CATALOG.get(ref_key) or CATALOG["djokovic"]
+
+
+def _apply_ref_language(report: dict, label: str, note: str) -> dict:
+    if label and label != "德约":
+        report["summary"] = (report.get("summary") or "").replace("德约", label)
+        for it in report.get("items") or []:
+            if it.get("tip"):
+                it["tip"] = it["tip"].replace("德约", label)
+    if note:
+        report["summary"] = note + (report.get("summary") or "")
+    return report
+
+
 def _build_result(landmarks: dict, video_path: str, hand: str,
-                  contact_override: int = None, seg: tuple = None) -> dict:
+                  contact_override: int = None, seg: tuple = None,
+                  ref_key: str = "djokovic") -> dict:
     """跑分析 + 渲染, 给定 contact(自动或滑杆指定) 与可选挥拍片段 seg。analyze/recompute 共用。"""
+    meta = _ref_meta(ref_key)
+    refdoc = meta["doc"]
     res = kc.analyze(landmarks, hand=hand, contact_override=contact_override, seg=seg)
-    report = diagnose.diagnose(res["metrics"], REFERENCE,
+    report = diagnose.diagnose(res["metrics"], refdoc,
                                loading_frames=res.get("loading_frames"))
-    ref = REFERENCE["reference"]
+    _apply_ref_language(report, meta["label"], meta["note"])
+    ref = refdoc["reference"]
     chart = shadow.render_kinetic_chart(
         res["signals"], res["metrics"]["contact_t"], ref.get("ideal_curve"),
         user_loading_s=res.get("loading_s", 0.0))
@@ -136,7 +216,7 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
     if frame is not None and contact_pose:
         user_contact = shadow.draw_skeleton_on_frame(frame, contact_pose)
 
-    mirror_user = res.get("facing", 1.0) != REF_FACING
+    mirror_user = res.get("facing", 1.0) != meta["facing"]
     # 3D 视角归一化: 取用户/德约 contact 帧的 world 坐标, 还原同一侧视
     uw = res["world"][contact_idx].tolist() if 0 <= contact_idx < len(res["world"]) else None
     overlay = None
@@ -178,11 +258,14 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
         "kinetic_chart": chart, "sequence_chart": seq_chart, "seq_axis": shadow.SEQ_AXIS,
         "shadow_overlay": overlay,
         "user_contact": user_contact,
-        "djokovic_contact": f"/assets/djokovic_contact.jpg?v={ASSET_VER}",
+        "djokovic_contact": (f"/assets/djokovic_contact.jpg?v={ASSET_VER}" if meta["scrub"] else None),
         "scrub_user": scrub_user,
-        "scrub_djoko": [f"/assets/djoko_scrub/{i:02d}.jpg?v={ASSET_VER}"
-                        for i in range(len(shadow.SCRUB_PHASES))],
+        "scrub_djoko": ([f"/assets/djoko_scrub/{i:02d}.jpg?v={ASSET_VER}"
+                         for i in range(len(shadow.SCRUB_PHASES))] if meta["scrub"] else []),
         "scrub_phases": shadow.SCRUB_PHASES,
+        "ref_key": ref_key if ref_key in CATALOG else "djokovic",
+        "ref_label": meta["label"],
+        "ref_note": meta["note"],
     }
 
 
@@ -250,11 +333,14 @@ def _video_duration(video_path: str):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "reference_strokes": REFERENCE.get("n_strokes")}
+    return {"status": "ok", "references": [
+        {"id": k, "label": v["label"], "note": v["note"]} for k, v in CATALOG.items()
+    ]}
 
 
 @app.post("/api/analyze")
-async def analyze(video: UploadFile = File(...), hand: str = Form("auto")):
+async def analyze(video: UploadFile = File(...), hand: str = Form("auto"),
+                  reference: str = Form("djokovic")):
     data = await video.read()
     if not data:
         raise HTTPException(400, "空文件")
@@ -291,6 +377,9 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto")):
         raise HTTPException(413, f"视频时长约 {n / fps:.0f} 秒, 超过 {MAX_DURATION_S} 秒上限, 请裁剪后再传。")
 
     _store_session(token, landmarks, path, hand)    # 保留视频供片段/滑杆重算
+    ref_key = reference if reference in CATALOG else "djokovic"
+    SESSIONS[token]["ref"] = ref_key
+    refdoc = CATALOG[ref_key]["doc"]
 
     # 自动切出候选挥拍片段 (纯姿态, 无重型 ML); 默认分析最强的一拍, 其余供用户切换
     facing = kc.detect_facing(frames)
@@ -301,7 +390,7 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto")):
         best = max(swings, key=lambda s: s["vf"])
         default_seg = (best["swing_start"], best["end"])
 
-    result = _build_result(landmarks, path, hand, seg=default_seg)
+    result = _build_result(landmarks, path, hand, seg=default_seg, ref_key=ref_key)
     # 多挥拍聚合: 职业自己单拍指标也大幅波动(xfactor 9~22), 单拍下判决不公平——
     # >=2 个候选挥拍时, 每拍各自分析取中位数重出报告(展示细节仍用最强一拍)。
     if len(swings) >= 2:
@@ -320,9 +409,10 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto")):
             agg_m = {k: float(statistics.median([m[k] for m, _ in per]))
                      for k in diagnose.ORDER}
             agg_report = diagnose.diagnose(
-                agg_m, REFERENCE,
+                agg_m, refdoc,
                 loading_frames=int(statistics.median([lf for _, lf in per])),
                 n_swings=len(per))
+            _apply_ref_language(agg_report, CATALOG[ref_key]["label"], CATALOG[ref_key]["note"])
             agg_report["sequencing"] = result["report"].get("sequencing", [])
             result["report"] = agg_report
     c = result["contact"]
@@ -342,7 +432,8 @@ async def analyze(video: UploadFile = File(...), hand: str = Form("auto")):
 
 @app.post("/api/recompute")
 async def recompute(token: str = Form(...), contact: int = Form(-1),
-                    seg_lo: int = Form(-1), seg_hi: int = Form(-1)):
+                    seg_lo: int = Form(-1), seg_hi: int = Form(-1),
+                    reference: str = Form("")):
     """滑杆校正击球帧 / 选定挥拍片段后, 用缓存 landmarks 快速重算 (不重跑 MediaPipe)。
     contact<0 表示该片段内自动找击球; seg_lo/seg_hi 给定时只在该片段内分析。"""
     sess = SESSIONS.get(token)
@@ -354,8 +445,10 @@ async def recompute(token: str = Form(...), contact: int = Form(-1),
     n = len(landmarks["frames"])
     seg = (seg_lo, seg_hi) if (seg_lo >= 0 and seg_hi > seg_lo) else None
     contact_override = int(contact) if contact >= 0 else None
+    ref_key = reference if reference in CATALOG else sess.get("ref") or "djokovic"
+    sess["ref"] = ref_key
     result = _build_result(landmarks, sess["video"], sess["hand"],
-                           contact_override=contact_override, seg=seg)
+                           contact_override=contact_override, seg=seg, ref_key=ref_key)
     c = result["contact"]
     win, thumbs = _contact_slider(sess["video"], fps, c, n, seg)
     result.update({"token": token, "n_frames": n, "fps": fps,

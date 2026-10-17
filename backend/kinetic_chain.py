@@ -387,6 +387,41 @@ def off_wrist_reach(world: np.ndarray, hand: str, contact: int, fps: float,
     return round(far, 3), bool(complete)
 
 
+# 持拍手肘角度的對照相位。0＝擊球，-1＝前揮起點。只供對照，不進分數。
+ELBOW_TAUS = [round(-1.15 + i * 0.05, 2) for i in range(37)]
+ELBOW_MARKS = (("引拍起點", -1.0), ("擊球前", -0.25), ("擊球", 0.0), ("擊球後", 0.30))
+
+
+def hitting_elbow_angle(world: np.ndarray, hand: str) -> np.ndarray:
+    """持拍手肘夾角（度）。180＝打直。"""
+    sh, el, wr = (R_SH, R_EL, R_WR) if hand != "L" else (L_SH, L_EL, L_WR)
+    v1 = world[:, sh] - world[:, el]
+    v2 = world[:, wr] - world[:, el]
+    n1 = np.linalg.norm(v1, axis=1)
+    n2 = np.linalg.norm(v2, axis=1)
+    denom = np.maximum(n1 * n2, 1e-9)
+    cos = np.clip(np.sum(v1 * v2, axis=1) / denom, -1.0, 1.0)
+    ang = np.degrees(np.arccos(cos))
+    ang[(n1 < 1e-6) | (n2 < 1e-6)] = np.nan
+    return _smooth(ang, 5)
+
+
+def elbow_phase_curve(world: np.ndarray, hand: str, contact: int,
+                      loading_frames: int) -> list:
+    """把持拍手肘角度對到固定相位。影片沒蓋到的相位是 None。"""
+    ang = hitting_elbow_angle(world, hand)
+    lf = max(int(loading_frames), 1)
+    frame_tau = (np.arange(len(ang)) - int(contact)) / lf
+    m = np.isfinite(ang)
+    taus = np.asarray(ELBOW_TAUS, float)
+    if int(m.sum()) < 4:
+        return [None] * len(taus)
+    grid = np.interp(taus, frame_tau[m], ang[m], left=np.nan, right=np.nan)
+    inside = (taus >= float(frame_tau[m].min())) & (taus <= float(frame_tau[m].max()))
+    grid = np.where(inside, grid, np.nan)
+    return [None if not np.isfinite(v) else round(float(v), 1) for v in grid]
+
+
 def _peak_centroids(signals: dict, contact: int, pre_s: float, post_s: float) -> dict:
     """五环节各自的"发力时刻"(相对击球, 秒): 窗口 [contact-pre_s, contact+post_s] 内
     强度加权质心而非 argmax —— 低帧率+姿态抖动下远比单帧峰值稳定。"""
@@ -524,10 +559,12 @@ def analyze(data: dict, hand: str = "auto", contact_override: int = None,
     hs = np.asarray(signals["raw"]["hip"], float) + np.asarray(signals["raw"]["shoulder"], float)
     lc = int(np.clip(local_contact, 1, max(1, len(hs))))
     metrics["rot_pre_frac"] = round(float(hs[:lc].sum()) / (float(hs.sum()) + 1e-9), 3)
+    elbow_phase = elbow_phase_curve(world, full["hand"], contact, loading_frames)
     return {"signals": signals, "contact": int(contact),
             "contact_local": int(local_contact), "world": world,
             "facing": facing, "n_frames": int(world.shape[0]),
             "swing_start": int(swing_start), "loading_s": float(loading_s),
             "loading_frames": loading_frames,
             "metrics_valid": bool(loading_frames >= MIN_LOADING_FRAMES),
-            "metrics": metrics, "valid_ratio": float(valid.mean())}
+            "metrics": metrics, "valid_ratio": float(valid.mean()),
+            "elbow_phase": elbow_phase}

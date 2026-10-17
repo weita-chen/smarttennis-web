@@ -212,6 +212,12 @@
       <div class="sub">身體（髖部＋肩膀）的轉動有多少是在擊球前完成。職業球員通常會先完成身體轉動，再將力量傳遞到手臂；如果大部分轉體都發生在擊球後，就代表「轉過頭了」。</div>
       <div id="rotBar" style="margin-top:10px"></div>
     </div>
+    <div class="card" id="elbowCard" style="display:none">
+      <h3 style="margin:0 0 4px">持拍手肘角度</h3>
+      <div class="sub" id="elbowNote">這項不計分，只和費德勒的樣本對照。</div>
+      <img id="elbowImg" alt="持拍手肘角度曲線" style="margin-top:8px">
+      <div id="elbowMarks" style="margin-top:8px"></div>
+    </div>
     <div class="card imgcard">
       <details>
         <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--green)">完整動力鏈速度曲線・進階</summary>
@@ -537,6 +543,18 @@ function paint(d){
     // 不下"紊乱"硬判决: 25-30fps 下精细顺序不可靠, 只如实呈现, 由你自己对照
     note.innerHTML="說明：手臂三個部位（上臂／前臂／手腕）的速度峰值可能只差不到一格，一般手機影格率難以精確分辨先後。因此這裡只呈現實際量測到的時間；使用慢動作（120/240 fps）拍攝可大幅提升精準度。";
   } else sc.style.display="none";
+
+  const elbowCard=$("#elbowCard");
+  if(d.elbow&&d.elbow.chart){
+    elbowCard.style.display="";
+    $("#elbowNote").textContent=d.elbow.note||"";
+    $("#elbowImg").src=d.elbow.chart;
+    $("#elbowMarks").innerHTML=(d.elbow.marks||[]).map(m=>`
+      <div class="metric" style="margin-bottom:8px">
+        <div class="top"><span class="name">${m.label}</span></div>
+        <div class="val">你 ${m.you==null?"—":m.you+"°"} <span style="color:var(--muted);font-weight:500">· 費德勒 ${m.ref_lo}～${m.ref_hi}°（中位數 ${m.ref_med}°）</span></div>
+      </div>`).join("");
+  } else elbowCard.style.display="none";
 
   const box=$("#metrics");box.innerHTML="";
   d.report.items.forEach(it=>{

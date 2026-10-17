@@ -243,6 +243,27 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
         locked=res.get("loading_frames", 99) < diagnose.TIMING_MIN_LOADING,
         ref_name=ref_name)
 
+    elbow = None
+    elbow_ref = refdoc.get("elbow_curve")
+    if elbow_ref and res.get("elbow_phase"):
+        you = res["elbow_phase"]
+        marks = []
+        taus = elbow_ref["tau"]
+        for label, target in kc.ELBOW_MARKS:
+            j = min(range(len(taus)), key=lambda i: abs(taus[i] - target))
+            marks.append({
+                "label": label,
+                "you": you[j],
+                "ref_lo": elbow_ref["q1"][j],
+                "ref_hi": elbow_ref["q3"][j],
+                "ref_med": elbow_ref["median"][j],
+            })
+        elbow = {
+            "chart": shadow.render_elbow_curve(you, elbow_ref),
+            "marks": marks,
+            "note": "這項不計分。180°＝打直。費德勒擊球時大約 140°，不是越直越好。",
+        }
+
     contact_idx, contact_pose = _nearest_pose(landmarks["frames"], res["contact"])
     user_contact = None
     frame = shadow.grab_frame(video_path, contact_idx)
@@ -282,6 +303,7 @@ def _build_result(landmarks: dict, video_path: str, hand: str,
         "seq_warn": seq_warn,
         "metrics": scalar, "report": report,
         "kinetic_chart": chart, "sequence_chart": seq_chart, "seq_axis": shadow.SEQ_AXIS,
+        "elbow": elbow,
         "shadow_overlay": overlay,
         "user_contact": user_contact,
         "djokovic_contact": (f"/assets/{meta['contact_asset']}?v={ASSET_VER}"

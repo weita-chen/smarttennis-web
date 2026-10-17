@@ -187,6 +187,31 @@ def render_power_transfer(signals: dict, contact_t: float, user_loading_s: float
     return _fig_to_b64(fig, tight=False)   # 固定边距 → 前端可精确定位竖线
 
 
+def render_elbow_curve(user_angles: list, ref_curve: dict) -> str:
+    """持拍手肘角度對照。不評分。綠帶＝費德勒樣本的中間一半，深線＝這一拍。"""
+    cjk = _use_cjk_font()
+    tau = np.asarray(ref_curve["tau"], float)
+    med = np.asarray(ref_curve["median"], float)
+    q1 = np.asarray(ref_curve["q1"], float)
+    q3 = np.asarray(ref_curve["q3"], float)
+    you = np.asarray([np.nan if v is None else v for v in user_angles], float)
+    fig, ax = plt.subplots(figsize=(7.2, 3.5))
+    ax.fill_between(tau, q1, q3, color="#1f7a4d", alpha=0.18,
+                    label=("費德勒中間一半" if cjk else "Federer"))
+    ax.plot(tau, med, color="#1f7a4d", lw=1.6, ls="--",
+            label=("費德勒中位數" if cjk else "Federer median"))
+    ax.plot(tau, you, color="#1a1a1a", lw=2.4, label=("你這一拍" if cjk else "you"))
+    ax.axvline(0, color="#c9a13b", lw=1)
+    ax.set_xlim(-1.15, 0.65)
+    ax.set_ylim(80, 180)
+    ax.set_xlabel("揮拍階段（0＝擊球，-1＝前揮起點）" if cjk else "phase", fontsize=9)
+    ax.set_ylabel("持拍手肘角度（180°＝打直）" if cjk else "elbow deg", fontsize=9)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    for sp_ in ("top", "right"):
+        ax.spines[sp_].set_visible(False)
+    return _fig_to_b64(fig)
+
+
 def render_kinetic_chart(signals: dict, contact_t: float,
                          ideal_curve: dict | None = None,
                          user_loading_s: float = 0.0) -> str:
